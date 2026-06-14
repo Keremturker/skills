@@ -1,0 +1,213 @@
+{
+  "_generated": {
+    "by": "scripts/sync-contract.sh",
+    "date": "2026-06-14"
+  },
+  "apiBaseDefault": "https://cmpose.dev",
+  "endpoints": {
+    "generate": "/api/generate",
+    "config": "/api/config",
+    "rateLimitStatus": "/api/rate-limit-status",
+    "versions": "/api/versions"
+  },
+  "endpointResolution": "env CMP_API > defaults.json.apiBase > apiBaseDefault",
+  "limits": {
+    "minSdkMin": 24,
+    "minSdkMax": 36,
+    "iosVersionMin": "15.0",
+    "iosVersionMax": "26.2",
+    "maxModules": 3,
+    "targetSdk": "36",
+    "compileSdk": "36",
+    "rateLimitMax": 5,
+    "rateLimitWindowMinutes": 15,
+    "maxBodyLimit": "500kb"
+  },
+  "maxLengths": {
+    "projectName": 30,
+    "appName": 30,
+    "packageName": 50,
+    "moduleName": 20,
+    "minSdk": 2,
+    "iosVersion": 8,
+    "networkBaseUrl": 100
+  },
+  "regex": {
+    "projectName": "^[a-zA-Z]+$",
+    "packageName": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){2,}$",
+    "moduleName": "^[a-z][a-z0-9]*$",
+    "iosVersionFormat": "^\\d+(\\.\\d+){1,2}$"
+  },
+  "messages": {
+    "projectNameSpaces": "Project Name cannot contain spaces",
+    "projectNameInvalid": "Project Name must contain only letters (a-z, A-Z)",
+    "packageNameSpaces": "Package Name cannot contain spaces",
+    "packageNameInvalid": "Invalid Package Name. Must start with a letter, contain at least two dots (3 segments), and use only lowercase letters, numbers, or underscores (e.g., com.example.app).",
+    "appNameInvalid": "App Name cannot have leading or trailing spaces",
+    "urlInvalid": "Invalid Base URL. Please enter a valid URL (e.g., https://api.example.com)",
+    "maxModulesReached": "Maximum 3 feature modules allowed",
+    "moduleNameInvalid": "Module name must start with a letter and contain only lowercase letters and numbers (a-z, 0-9)",
+    "minSdkInvalid": "Min SDK must be a number between 24 and 36",
+    "iosVersionInvalid": "iOS Version must be between 15.0 and 26.2"
+  },
+  "templateTypes": [
+    "blank",
+    "showcase"
+  ],
+  "featuresConfigKeys": [
+    "network",
+    "networkInspector",
+    "networkBaseUrl",
+    "theming",
+    "multiLang",
+    "dataStore",
+    "detekt",
+    "detektYamlContent"
+  ],
+  "dependencyRules": {
+    "alwaysOn": [
+      "koin",
+      "navigation"
+    ],
+    "implies": {
+      "networkInspector": [
+        "network"
+      ]
+    },
+    "auto": {
+      "dataStore": [
+        "theming",
+        "multiLang"
+      ]
+    }
+  },
+  "keywordMap": {
+    "network": [
+      "network",
+      "ktor",
+      "networking",
+      "api client",
+      "http",
+      "ağ",
+      "istek"
+    ],
+    "networkInspector": [
+      "network inspector",
+      "inspector",
+      "chucker",
+      "http inspector",
+      "network monitor",
+      "ağ izleyici"
+    ],
+    "theming": [
+      "theming",
+      "theme",
+      "dark mode",
+      "light mode",
+      "material",
+      "tema",
+      "karanlık mod",
+      "koyu tema"
+    ],
+    "multiLang": [
+      "multi-language",
+      "multilanguage",
+      "multi language",
+      "i18n",
+      "l10n",
+      "localization",
+      "localisation",
+      "çoklu dil",
+      "yerelleştirme",
+      "dil desteği"
+    ],
+    "dataStore": [
+      "datastore",
+      "data store",
+      "database",
+      "db",
+      "persistence",
+      "local storage",
+      "veritabanı",
+      "yerel depolama",
+      "saklama"
+    ],
+    "detekt": [
+      "detekt",
+      "static analysis",
+      "lint",
+      "kod analizi",
+      "statik analiz"
+    ]
+  },
+  "templateKeywords": {
+    "showcase": [
+      "showcase",
+      "example app",
+      "full example",
+      "sample app",
+      "demo app",
+      "örnek uygulama",
+      "örnek proje",
+      "her şey",
+      "hepsi",
+      "dolu"
+    ]
+  },
+  "anatomy": {
+    "always": [
+      "androidApp",
+      "iosApp",
+      "shared",
+      "core/domain",
+      "core/presentation",
+      "core/navigation",
+      "build-logic"
+    ],
+    "alwaysNote": "shared wires Koin (DI) + Navigation, which are always included.",
+    "coreModules": {
+      "core/network": {
+        "requires": [
+          "network"
+        ],
+        "note": "Ktor HTTP client"
+      },
+      "core/designsystem": {
+        "requiresAny": [
+          "theming",
+          "multiLang"
+        ],
+        "note": "theme (darkmode) and/or language resources"
+      },
+      "core/multilang": {
+        "requires": [
+          "multiLang"
+        ],
+        "note": "i18n / localization"
+      },
+      "core/database": {
+        "requires": [
+          "dataStore"
+        ],
+        "note": "DataStore persistence"
+      }
+    },
+    "detektDir": {
+      "requires": [
+        "detekt"
+      ],
+      "path": "detekt/"
+    },
+    "showcaseFeatures": [
+      "feature/home",
+      "feature/onboarding"
+    ],
+    "customFeaturePath": "feature/<name>",
+    "customFeatureLayers": [
+      "contract",
+      "data",
+      "domain",
+      "presentation"
+    ]
+  }
+}

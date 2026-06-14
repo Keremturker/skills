@@ -1,0 +1,11 @@
+{
+  "apiBase": "https://cmpose.dev",
+  "packagePrefix": "dev.cmpose",
+  "outputDir": "~/StudioProjects",
+  "minSdk": "24",
+  "iosVersion": "15.0",
+  "ide": "Android Studio",
+  "openIde": true,
+  "autoBuildAndroid": true,
+  "autoRunIos": true
+}
