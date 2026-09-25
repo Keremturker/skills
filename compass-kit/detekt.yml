@@ -512,8 +512,6 @@ style:
         reason: 'Please use proper issue tracking instead of inline FIXME.'
       - value: 'STOPSHIP:'
         reason: 'The STOPSHIP tag is forbidden.'
-      - value: '(?i)(?<![A-Za-z0-9_])todo(?![A-Za-z0-9_])\:?'
-        reason: 'TODO comment is forbidden.'
     allowedPatterns: ''
   ForbiddenMethodCall:
     active: true

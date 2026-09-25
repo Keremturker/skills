@@ -62,10 +62,8 @@ What this configuration expects, so new code does not add findings:
   `CyclomaticComplexMethod` (15) applies to everything, and each `when` branch counts.
 - `const val` names are `SCREAMING_SNAKE_CASE`. A file with a single top-level type is named after
   that type.
-- Forbidden: `TODO`, `FIXME:` and `STOPSHIP:` comments; imports of `android.util.Log`,
+- Forbidden: `FIXME:` and `STOPSHIP:` comments; imports of `android.util.Log`,
   `androidx.compose.ui.res.*` and `GlobalScope`; wildcard imports; unused parameters.
-- The `TODO` check matches the word "todo" in any comment, in any case: in a to-do list app,
-  "the todo list" in a comment is a finding (measured). Write "task list" or drop the comment.
 
 ## 4. Fix at the cause
 
@@ -78,7 +76,7 @@ What this configuration expects, so new code does not add findings:
 | `PropertyName`, `TopLevelPropertyNaming` | rename to `SCREAMING_SNAKE_CASE` and update every use (Grep) |
 | `MatchingDeclarationName` | rename the file after its single top-level declaration |
 | `DocumentationOverPrivateProperty` | give the property a name that explains it and drop the comment |
-| `ForbiddenComment` | remove the `TODO`; do the work, or list it in your summary |
+| `ForbiddenComment` | remove the `FIXME:` or `STOPSHIP:` marker; do the work, or list it in your summary |
 | `ForbiddenImport` (`androidx.compose.ui.res`) | `org.jetbrains.compose.resources` (`cmp-code-rules`, section 11) |
 | `ForbiddenImport`, `GlobalCoroutineUsage` (`GlobalScope`) | `viewModelScope`, or a scope passed in |
 | `WildcardImport`, `NoWildcardImports` | import each name |

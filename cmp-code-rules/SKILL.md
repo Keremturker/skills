@@ -166,7 +166,7 @@ An error is never turned into an empty list.
 ## 14. Comments
 
 A comment explains a non-obvious *why*. No decorative separators, emoji, phase or task numbers,
-"temporary" notes, `TODO` or `FIXME` (detekt rejects `TODO` in any form and `FIXME:`).
+"temporary" notes, `TODO` or `FIXME` (detekt rejects `FIXME:` and `STOPSHIP:`).
 
 ## 15. Generated-code blind spot
 
