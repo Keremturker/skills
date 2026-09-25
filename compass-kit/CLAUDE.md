@@ -20,6 +20,9 @@ and runs out of memory.
 
 <!-- compass:gates -->
 
+The test gate counts the tests it runs, and zero tests is red: write unit tests as you go (see
+`cmp-testing`).
+
 The app also needs `.maestro/walkthrough.yaml` (see `cmp-maestro`); Compass records the demo
 video from it.
 
