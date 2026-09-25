@@ -7,12 +7,7 @@ come from the template's `core/domain`.
 
 ```kotlin
 // domain/model/Recipe.kt
-data class Recipe(
-    val id: String,
-    val title: String,
-    val imageUrl: String?,
-    val isFavorite: Boolean = false,
-)
+data class Recipe(val id: String, val title: String, val imageUrl: String?, val isFavorite: Boolean = false)
 ```
 
 ## Repository interface (domain)
@@ -20,9 +15,12 @@ data class Recipe(
 ```kotlin
 // domain/repository/RecipesRepository.kt
 interface RecipesRepository {
-    suspend fun getRecipes(): RestResult<List<Recipe>>    // one-shot read, for example from the network
-    fun observeFavorites(): Flow<List<Recipe>>            // observed read, for example from Room
-    suspend fun setFavorite(id: String, favorite: Boolean)
+    suspend fun getRecipes(): RestResult<List<Recipe>> // one-shot read, for example from the network
+    fun observeFavorites(): Flow<List<Recipe>> // observed read, for example from Room
+    suspend fun setFavorite(
+        id: String,
+        favorite: Boolean
+    )
 }
 ```
 
@@ -60,16 +58,17 @@ class ObserveFavoritesUseCase(@Provided private val repository: RecipesRepositor
 ## Repository implementation (data)
 
 ```kotlin
-// data/repository/RecipesRepositoryImpl.kt
+// data/repository/RecipesRepositoryImpl.kt, with the DAO from core/database
 @Single(binds = [RecipesRepository::class])
-internal class RecipesRepositoryImpl(
-    @Provided private val dao: RecipeDao,          // from core/database
-) : RecipesRepository {
+internal class RecipesRepositoryImpl(@Provided private val dao: RecipeDao) : RecipesRepository {
 
     override fun observeFavorites(): Flow<List<Recipe>> =
         dao.observeFavorites().map { entities -> entities.map { it.toDomain() } }
 
-    override suspend fun setFavorite(id: String, favorite: Boolean) {
+    override suspend fun setFavorite(
+        id: String,
+        favorite: Boolean
+    ) {
         dao.setFavorite(id = id, favorite = favorite)
     }
 

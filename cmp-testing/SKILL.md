@@ -76,7 +76,10 @@ internal class FakeRecipesRepository(
 
     override fun observeFavorites(): Flow<List<Recipe>> = favorites
 
-    override suspend fun setFavorite(id: String, favorite: Boolean) {
+    override suspend fun setFavorite(
+        id: String,
+        favorite: Boolean
+    ) {
         val recipe = recipes.first { it.id == id }.copy(isFavorite = favorite)
         favorites.update { list -> list.filterNot { it.id == id } + listOfNotNull(recipe.takeIf { favorite }) }
     }

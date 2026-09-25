@@ -33,7 +33,7 @@ with these imports and the small `ErrorState`, `EmptyState` and `RecipeRow` comp
 internal data class RecipesUiState(
     val isLoading: Boolean = false,
     val hasError: Boolean = false,
-    val recipes: List<Recipe> = emptyList(),
+    val recipes: List<Recipe> = emptyList()
 )
 
 // ui/RecipesAction.kt
@@ -48,12 +48,15 @@ editing, saving or saved).
 
 ## ViewModel
 
+`getRecipes` comes from the domain module and `navigationManager` from `core/navigation`, hence
+`@Provided`. Extend `ViewModel()` instead when the project has no `CoreViewModel`.
+
 ```kotlin
 @KoinViewModel
 internal class RecipesViewModel(
-    @Provided private val getRecipes: GetRecipesUseCase,          // from the domain module
-    @Provided private val navigationManager: NavigationManager,   // from core/navigation
-) : CoreViewModel() {                                              // or ViewModel() if there is no CoreViewModel
+    @Provided private val getRecipes: GetRecipesUseCase,
+    @Provided private val navigationManager: NavigationManager
+) : CoreViewModel() {
 
     private val _uiState = MutableStateFlow(RecipesUiState())
     val uiState: StateFlow<RecipesUiState> = _uiState.asStateFlow()
@@ -67,6 +70,7 @@ internal class RecipesViewModel(
     fun onAction(action: RecipesAction) {
         when (action) {
             RecipesAction.Retry -> load()
+
             is RecipesAction.OpenRecipe ->
                 navigationManager.navigate(NavigationCommand.NavigateTo(RecipeDetailDestination(action.id)))
         }
@@ -105,24 +109,27 @@ internal fun RecipesRoute(viewModel: RecipesViewModel = koinViewModel()) {
 private fun RecipesContent(
     uiState: RecipesUiState,
     onAction: (RecipesAction) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize().testTag(RecipesTestTags.ROOT)) {
         when {
             uiState.isLoading && uiState.recipes.isEmpty() -> CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center).testTag(RecipesTestTags.LOADING),
+                modifier = Modifier.align(Alignment.Center).testTag(RecipesTestTags.LOADING)
             )
+
             uiState.hasError -> ErrorState(
                 onRetry = { onAction(RecipesAction.Retry) },
-                modifier = Modifier.align(Alignment.Center),
+                modifier = Modifier.align(Alignment.Center)
             )
+
             uiState.recipes.isEmpty() -> EmptyState(modifier = Modifier.align(Alignment.Center))
+
             else -> LazyColumn(modifier = Modifier.fillMaxSize().testTag(RecipesTestTags.LIST)) {
                 items(items = uiState.recipes, key = { it.id }) { recipe ->
                     RecipeRow(
                         recipe = recipe,
                         onClick = { onAction(RecipesAction.OpenRecipe(recipe.id)) },
-                        modifier = Modifier.testTag(RecipesTestTags.ITEM),
+                        modifier = Modifier.testTag(RecipesTestTags.ITEM)
                     )
                 }
             }

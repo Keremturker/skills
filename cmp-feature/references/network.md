@@ -29,20 +29,19 @@ cannot work without one.
 private const val PAGE_SIZE = 50
 
 @Single(binds = [RecipesRepository::class])
-internal class RecipesRepositoryImpl(
-    @Provided private val httpClient: HttpClient,          // provided by core/network
-) : BaseRepository(), RecipesRepository {
+internal class RecipesRepositoryImpl(@Provided private val httpClient: HttpClient) :
+    BaseRepository(),
+    RecipesRepository {
 
-    override suspend fun getRecipes(): RestResult<List<Recipe>> =
-        request<List<RecipeResponse>> {
-            httpClient.get("recipes") {
-                parameter("limit", PAGE_SIZE)
-            }
-        }.mapOnSuccess { list -> list.orEmpty().mapNotNull { it.toDomain() } }
+    override suspend fun getRecipes(): RestResult<List<Recipe>> = request<List<RecipeResponse>> {
+        httpClient.get("recipes") {
+            parameter("limit", PAGE_SIZE)
+        }
+    }.mapOnSuccess { list -> list.orEmpty().mapNotNull { it.toDomain() } }
 }
 ```
 
-- `HttpClient` needs `@Provided`, or `@Module(includes = [NetworkModule::class])` on
+- `HttpClient` comes from `core/network`, so it needs `@Provided`, or `@Module(includes = [NetworkModule::class])` on
   `<Name>DataModule`. Use one of the two, not both.
 - Imports: `io.ktor.client.HttpClient`, `io.ktor.client.request.get`, `io.ktor.client.request.parameter`.
 
@@ -54,7 +53,7 @@ internal class RecipesRepositoryImpl(
 internal data class RecipeResponse(
     @SerialName("id") val id: String? = null,
     @SerialName("title") val title: String? = null,
-    @SerialName("image_url") val imageUrl: String? = null,
+    @SerialName("image_url") val imageUrl: String? = null
 )
 
 // data/mapper/RecipeResponseMapper.kt

@@ -52,9 +52,9 @@ Modifiers apply from the outside in; order changes behaviour.
 ```kotlin
 Modifier
     .fillMaxWidth()
-    .clip(MaterialTheme.shapes.medium)          // clip before background, or the corners stay square
+    .clip(MaterialTheme.shapes.medium) // clip before background, or the corners stay square
     .background(MaterialTheme.colorScheme.surfaceVariant)
-    .clickable(onClick = onClick)               // before padding, so the padding is tappable too
+    .clickable(onClick = onClick) // before padding, so the padding is tappable too
     .padding(16.dp)
 ```
 

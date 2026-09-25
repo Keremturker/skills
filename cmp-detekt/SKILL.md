@@ -50,6 +50,10 @@ What this configuration expects, so new code does not add findings:
 
 - No trailing commas, neither at call sites nor in declarations.
 - A function signature with two or more parameters puts each parameter on its own line.
+- A class header (constructor and supertypes) stays on one line when it fits in 120 characters,
+  whatever the number of parameters; only a longer one gets one parameter per line.
+- No comment after a parameter on the same line, and no extra spaces to align trailing comments.
+- When one branch of a `when` spans several lines, a blank line separates every branch.
 - Lines are at most 120 characters.
 - `MagicNumber`: numbers other than -1, 0, 1, 2 and 3 need a name, except inside `@Composable`
   functions, in property and constant declarations (not local `val`s), as named arguments, as the
@@ -82,7 +86,9 @@ What this configuration expects, so new code does not add findings:
 | `UnusedPrivateFunction`, `UnusedPrivateProperty`, `UnusedImport` | delete, unless generated code uses it (`cmp-code-rules`, section 15) |
 
 - Measured example from template code: `internal const val dataStoreFileName` in
-  `core/database` needs `DATA_STORE_FILE_NAME`. Renaming changes no behaviour; the value stays.
+  `core/database` is reported as `[PropertyName]` (the ktlint wrapper's rule; the file already
+  suppresses detekt's own `TopLevelPropertyNaming`) and needs `DATA_STORE_FILE_NAME`. Renaming
+  changes no behaviour; the value stays.
 - A composable too long to read: extract sub-composables, even though `LongMethod` allows it.
 - Fix the finding and nothing around it. No unrelated refactoring on the way.
 - After a batch of manual fixes run the Android gate: a rename that missed a use shows there.
@@ -96,14 +102,14 @@ What this configuration expects, so new code does not add findings:
 - A wire format never needs a suppression: keep the Kotlin name conventional and put the wire name
   in `@SerialName`.
 
-The template's own `@file:Suppress` lines (in `Screens.kt`, `initKoin.kt`, the palette) stay as
-they are; add none.
+The template's own `@file:Suppress` lines (for example in `Screens.kt`, `initKoin.kt`, the
+palette, `DataStore.kt`) stay as they are; add none.
 
 ## 6. Loop
 
 Run, fix, run again until `./gradlew detekt` is clean. If one finding survives two different
 fixes, reread the rule's message and the line; if it still resists, report it with the reason in
-your final summary. The gate stays red until it is fixed; silencing it is not an option.
+your final message. The gate stays red until it is fixed; silencing it is not an option.
 
 ## Done when
 
@@ -118,5 +124,6 @@ your final summary. The gate stays red until it is fixed; silencing it is not an
   expected.
 - Run Gradle in the foreground with a long Bash timeout. detekt itself takes seconds; the first
   build of the convention plugins takes longer.
-- Do not ask whether a rule is worth fixing. Every finding is fixed; list what you could not fix,
-  and why, in your final summary.
+- Do not ask whether a finding is worth fixing: every finding is fixed. A finding you could not
+  fix goes into your final message with the reason; a judgement call you made (a constant's name,
+  where a moved colour lives) goes under `Assumptions`.

@@ -15,9 +15,7 @@ The template provides one `DataStore<Preferences>` through Koin (`provideDataSto
 
 ```kotlin
 @Single(binds = [SettingsRepository::class])
-internal class SettingsRepositoryImpl(
-    @Provided private val dataStore: DataStore<Preferences>,
-) : SettingsRepository {
+internal class SettingsRepositoryImpl(@Provided private val dataStore: DataStore<Preferences>) : SettingsRepository {
 
     override fun observeSoundOn(): Flow<Boolean> = dataStore.data.map { it[SOUND_ON] ?: true }
 
@@ -107,11 +105,10 @@ internal const val APP_DATABASE_FILE = "app.db"
 
 expect fun getAppDatabaseBuilder(): RoomDatabase.Builder<AppDatabase>
 
-fun buildAppDatabase(builder: RoomDatabase.Builder<AppDatabase>): AppDatabase =
-    builder
-        .setDriver(BundledSQLiteDriver())
-        .setQueryCoroutineContext(Dispatchers.IO)
-        .build()
+fun buildAppDatabase(builder: RoomDatabase.Builder<AppDatabase>): AppDatabase = builder
+    .setDriver(BundledSQLiteDriver())
+    .setQueryCoroutineContext(Dispatchers.IO)
+    .build()
 ```
 
 No `@Suppress` is needed on the `expect object`; it compiles on both targets with only a warning
@@ -125,7 +122,7 @@ actual fun getAppDatabaseBuilder(): RoomDatabase.Builder<AppDatabase> {
     val context: Context = getKoin().get<Context>().applicationContext
     return Room.databaseBuilder<AppDatabase>(
         context = context,
-        name = context.getDatabasePath(APP_DATABASE_FILE).absolutePath,
+        name = context.getDatabasePath(APP_DATABASE_FILE).absolutePath
     )
 }
 
@@ -137,7 +134,7 @@ actual fun getAppDatabaseBuilder(): RoomDatabase.Builder<AppDatabase> {
         inDomain = NSUserDomainMask,
         appropriateForURL = null,
         create = false,
-        error = null,
+        error = null
     )
     return Room.databaseBuilder<AppDatabase>(name = requireNotNull(documents).path + "/$APP_DATABASE_FILE")
 }

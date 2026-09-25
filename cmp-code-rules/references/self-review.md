@@ -15,7 +15,7 @@ files; do not review the whole project.
 | `map {`, `filter {`, `sortedBy {` in a composable body without `remember` | recomputed on every recomposition | move to the ViewModel or `remember(input)` |
 | `java.`, `android.`, `System.`, `String.format` under `src/commonMain` | breaks the iOS gate | common API or `expect`/`actual` |
 | `@Preview` under `src/commonMain` | breaks the iOS gate | remove, or move to `androidMain` (see `cmp-feature`) |
-| `println(` | debug output left behind; detekt rejects it | remove |
+| `println(` | debug output left behind; forbidden here, but detekt does not catch it (see `cmp-detekt`) | remove |
 | `!!` | crash instead of a handled case | `?:`, `requireNotNull` with a message, typed error |
 | a user-visible string literal in a composable | not translatable | `stringResource(Res.string.key)` |
 | `catch (e: Exception)` or `runCatching` without rethrowing `CancellationException` | swallows cancellation; coroutines keep running | rethrow `CancellationException` first |
@@ -32,7 +32,8 @@ Before you report or change something, drop it if:
 
 - the line is not part of your change (template code such as `MainScreen.kt`'s `collectAsState`
   is out of scope);
-- detekt or the compiler already reports it (the gates will catch it; fix it there);
+- detekt or the compiler already reports it (the gates will catch it; fix it there). This never
+  applies to `println(` or `!!`: detekt does not catch them in this project;
 - it is a matter of taste where both versions are defensible.
 
 What remains is fixed now, or, if fixing it is out of scope, listed in your final summary with

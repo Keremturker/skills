@@ -34,11 +34,14 @@ marked `@Provided`:
 ```kotlin
 @KoinViewModel
 internal class RecipesViewModel(
-    @Provided private val getRecipes: GetRecipesUseCase,         // defined in the domain module
-    @Provided private val navigationManager: NavigationManager,  // defined in core/navigation
-    private val savedStateHandle: SavedStateHandle,              // supplied by Koin, no @Provided
+    @Provided private val getRecipes: GetRecipesUseCase,
+    @Provided private val navigationManager: NavigationManager,
+    private val savedStateHandle: SavedStateHandle
 ) : CoreViewModel()
 ```
+
+`GetRecipesUseCase` is defined in the domain module and `NavigationManager` in `core/navigation`,
+so both are `@Provided`; Koin supplies `SavedStateHandle` itself.
 
 Without `@Provided` the build stops in `kspCommonMainKotlinMetadata`:
 
