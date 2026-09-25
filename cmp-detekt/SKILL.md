@@ -1,0 +1,122 @@
+---
+name: cmp-detekt
+description: Use when the detekt gate is red, or before finishing a change in a project that has detekt — running ./gradlew detekt from the template's convention plugin with the owner's detekt/detekt.yml, auto-correcting formatting first, then fixing the remaining findings at their cause, without suppressions, baselines or config changes.
+---
+
+# detekt
+
+Only for projects that have `build-logic/src/main/kotlin/convention/DetektConventionPlugin.kt`.
+Without that file the project has no detekt gate and this skill does not apply.
+
+## 1. How it runs
+
+- The template's `DetektConventionPlugin` adds a `detekt` task to every module. It reads the
+  owner's configuration from `detekt/detekt.yml` on top of detekt's defaults and includes the
+  ktlint formatting rules.
+- It scans the main source sets (`commonMain`, `androidMain`, `iosMain`, `main`), not tests.
+- The gate is `./gradlew detekt` from the project root; it covers every module, template code
+  included.
+- While fixing, add `--continue` so every module reports in one run; without it Gradle may stop
+  starting modules after the first failure.
+- Each finding is one line:
+  `e: /abs/path/File.kt:22:1 Unexpected blank line(s) before "}" [NoBlankLineBeforeRbrace]`.
+  Each red module ends with `Analysis failed with N issues`. The console has everything; the HTML
+  report (`<module>/build/reports/detekt/detekt.html`) adds nothing you need.
+- Do not use `--quiet`; it hides the findings.
+- The task runs without type resolution, so rules that need it stay silent (measured: `println`,
+  `!!` and `Dispatchers.IO` passed). The gate does not catch them; `cmp-code-rules` still forbids
+  them.
+
+## 2. Auto-correct first
+
+```
+./gradlew detekt --auto-correct --continue
+```
+
+- Run it twice, and after each pass count with a plain `./gradlew detekt --continue`. The count an
+  auto-correct run prints is not reliable, and the first pass rewraps code in ways that create new
+  wrapping findings, which the second pass fixes. Measured: an app built by the coding step went
+  from 436 findings to 26, then 21; a fresh project from the template from 77 to 10, then 1. Both
+  gates stayed green after the rewrite.
+- Nearly all of what it fixes is formatting: trailing commas, argument and parameter wrapping,
+  function and class signature layout, blank lines, import order.
+- Findings in template files count like yours; a fresh project already has some with this
+  configuration.
+- Then fix what is left by hand.
+
+## 3. Write it right the first time
+
+What this configuration expects, so new code does not add findings:
+
+- No trailing commas, neither at call sites nor in declarations.
+- A function signature with two or more parameters puts each parameter on its own line.
+- Lines are at most 120 characters.
+- `MagicNumber`: numbers other than -1, 0, 1, 2 and 3 need a name, except inside `@Composable`
+  functions, in property and constant declarations (not local `val`s), as named arguments, as the
+  receiver of an extension such as `16.dp`, and in files under a `theme` package.
+- `LongMethod` (120 lines) and `LongParameterList` (7) do not apply to composables;
+  `CyclomaticComplexMethod` (15) applies to everything, and each `when` branch counts.
+- `const val` names are `SCREAMING_SNAKE_CASE`. A file with a single top-level type is named after
+  that type.
+- Forbidden: `TODO`, `FIXME:` and `STOPSHIP:` comments; imports of `android.util.Log`,
+  `androidx.compose.ui.res.*` and `GlobalScope`; wildcard imports; unused parameters.
+- The `TODO` check matches the word "todo" in any comment, in any case: in a to-do list app,
+  "the todo list" in a comment is a finding (measured). Write "task list" or drop the comment.
+
+## 4. Fix at the cause
+
+| Rule | Fix |
+|---|---|
+| `MagicNumber` | a named `private const val` at the top of the file, or move colours and sizes into the theme |
+| `MaxLineLength`, `MaximumLineLength` | wrap the expression; long texts belong in `strings.xml` anyway |
+| `CyclomaticComplexMethod` | split the function; a long `when` that maps ids to values becomes a map or data on the model |
+| `LongMethod`, `LongParameterList` | extract functions; group related parameters into a data class |
+| `PropertyName`, `TopLevelPropertyNaming` | rename to `SCREAMING_SNAKE_CASE` and update every use (Grep) |
+| `MatchingDeclarationName` | rename the file after its single top-level declaration |
+| `DocumentationOverPrivateProperty` | give the property a name that explains it and drop the comment |
+| `ForbiddenComment` | remove the `TODO`; do the work, or list it in your summary |
+| `ForbiddenImport` (`androidx.compose.ui.res`) | `org.jetbrains.compose.resources` (`cmp-code-rules`, section 11) |
+| `ForbiddenImport`, `GlobalCoroutineUsage` (`GlobalScope`) | `viewModelScope`, or a scope passed in |
+| `WildcardImport`, `NoWildcardImports` | import each name |
+| `UnusedParameter` | remove the parameter and update the callers |
+| `UnusedPrivateFunction`, `UnusedPrivateProperty`, `UnusedImport` | delete, unless generated code uses it (`cmp-code-rules`, section 15) |
+
+- Measured example from template code: `internal const val dataStoreFileName` in
+  `core/database` needs `DATA_STORE_FILE_NAME`. Renaming changes no behaviour; the value stays.
+- A composable too long to read: extract sub-composables, even though `LongMethod` allows it.
+- Fix the finding and nothing around it. No unrelated refactoring on the way.
+- After a batch of manual fixes run the Android gate: a rename that missed a use shows there.
+
+## 5. Never
+
+- `@Suppress`, `@file:Suppress`, a baseline file, `ignoreFailures`, or `--auto-correct` treated as
+  a pass while findings remain.
+- Changing `detekt/detekt.yml`: it is the owner's configuration, installed by Compass.
+- Touching `DetektConventionPlugin.kt` or any other convention plugin.
+- A wire format never needs a suppression: keep the Kotlin name conventional and put the wire name
+  in `@SerialName`.
+
+The template's own `@file:Suppress` lines (in `Screens.kt`, `initKoin.kt`, the palette) stay as
+they are; add none.
+
+## 6. Loop
+
+Run, fix, run again until `./gradlew detekt` is clean. If one finding survives two different
+fixes, reread the rule's message and the line; if it still resists, report it with the reason in
+your final summary. The gate stays red until it is fixed; silencing it is not an option.
+
+## Done when
+
+- `./gradlew detekt` ran green in this session after the last code change.
+- The diff contains no new suppression, no baseline and no change to `detekt/detekt.yml` or
+  `build-logic`.
+- The Android gate is green after the fixes.
+
+## Headless runs
+
+- Only `./gradlew` runs; read the findings from its console output. `--auto-correct` is allowed and
+  expected.
+- Run Gradle in the foreground with a long Bash timeout. detekt itself takes seconds; the first
+  build of the convention plugins takes longer.
+- Do not ask whether a rule is worth fixing. Every finding is fixed; list what you could not fix,
+  and why, in your final summary.
