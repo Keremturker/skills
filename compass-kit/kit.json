@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": [
+    "cmp-code-rules",
+    "cmp-feature",
+    "cmp-design-to-code",
+    "cmp-maestro",
+    "cmp-testing",
+    "cmp-verify",
+    "cmp-commit",
+    { "name": "cmp-detekt", "requires": "detekt" }
+  ],
+  "gates": [
+    { "name": "Android", "tasks": [":androidApp:assembleDebug"] },
+    { "name": "iOS", "tasks": [":shared:compileKotlinIosSimulatorArm64"] },
+    { "name": "detekt", "tasks": ["detekt"], "requires": "detekt" },
+    { "name": "Testler", "tasks": ["allTests"], "countTests": true }
+  ]
+}

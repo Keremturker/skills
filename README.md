@@ -75,3 +75,13 @@ it — some execute shell commands and call external APIs.
 ## License
 
 [MIT](./LICENSE) © 2026 Kerem Turker
+
+## compass-kit
+
+`compass-kit/` is what Compass installs into every project it generates: the skills listed in
+`kit.json`, `CLAUDE.md` (Compass fills in the `<!-- compass:gates -->` line), a project
+`settings.json` that registers `hooks/secrets-guard.py`, and the detekt configuration.
+The gates in `kit.json` are both what the coding agent is told to run and what Compass runs
+itself before it calls the app ready.
+
+Hook test: `sh compass-kit/hooks/test_secrets_guard.sh`
