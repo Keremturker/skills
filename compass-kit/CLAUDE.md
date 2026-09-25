@@ -34,13 +34,18 @@ video from it.
 - Build failure, or before saying you are done: `cmp-verify`
 - The owner asks for a commit: `cmp-commit` (follow its steps even if it is not auto-loaded)
 
-## Five rules that break builds most often
+## Rules that break the app most often
 
 1. `@KoinViewModel` is imported from `org.koin.android.annotation`, never `org.koin.core.annotation`.
 2. No `java.*`, `android.*`, `String.format` or `System.*` in `commonMain`; the iOS compile fails.
 3. DTOs and database entities stay in `data`; `domain` and `presentation` never see them.
 4. No `@Suppress`, baseline files or disabled rules to make a gate pass.
 5. Do not touch the Gradle wrapper, the Kotlin/AGP versions or the `build-logic` plugin wiring.
+6. Every module with `composeResources` (fonts, strings, sounds, drawables) needs
+   `androidResources.enable = true` in its Android block:
+   `kotlin { extensions.configure<KotlinMultiplatformAndroidLibraryExtension> { androidResources.enable = true } }`
+   (full example in `cmp-feature`, `references/screen.md`). Without it the Android APK ships
+   without those files while every gate stays green.
 
 ## How to work
 
