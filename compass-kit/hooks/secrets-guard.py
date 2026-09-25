@@ -18,12 +18,21 @@ SECRET_PATTERNS = [
     ("URL with an embedded password", re.compile(r"\b[a-z][a-z0-9+.\-]*://[^\s:/@]+:[^\s@/]+@")),
     ("GitHub token", re.compile(r"\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\b|\bgithub_pat_[A-Za-z0-9_]{50,}")),
     ("GitLab token", re.compile(r"\bglpat-[A-Za-z0-9_\-]{20}\b")),
-    ("plain-text keystore password", re.compile(r"(?im)^\s*(storePassword|keyPassword)\s*=\s*\S+")),
 ]
 
+# In a .properties file any value is plain text; in code only a quoted literal is, since
+# System.getenv("...") or keystoreProperties["..."] is the way secrets should be read.
+PROPERTIES_KEYSTORE_PASSWORD = re.compile(r"(?im)^\s*(storePassword|keyPassword)\s*=\s*\S+")
+CODE_KEYSTORE_PASSWORD = re.compile(r"(storePassword|keyPassword)\s*=\s*\"[^\"$]+\"")
+
+# The sanctioned secret stores. Writing them is allowed; committing them is blocked below.
+SECRET_STORE = re.compile(r"(^|/)(local\.properties|keystore\.properties|\.env(\.[^/]*)?)$")
+
+# A path ends at whitespace, a quote, a shell separator or a closing parenthesis.
+_END = r"""([\s"';&|)]|$)"""
 SENSITIVE_PATH = re.compile(
-    r"(^|[\s/])(local\.properties|keystore\.properties|\.env(\.[\w.-]+)?)(\s|$)"
-    r"|\.(jks|keystore|p12|mobileprovision)(\s|$)"
+    r"""(^|[\s/"'(])(local\.properties|keystore\.properties|\.env(\.[\w.-]+)?)""" + _END
+    + r"|\.(jks|keystore|p12|mobileprovision)" + _END
 )
 
 ADVICE = (
@@ -38,14 +47,15 @@ def is_exempt(path: str) -> bool:
 
 def check_write(tool_input: dict) -> str | None:
     path = tool_input.get("file_path", "")
-    if is_exempt(path):
+    if is_exempt(path) or SECRET_STORE.search(path):
         return None
     text = "\n".join(
         str(tool_input.get(key, "")) for key in ("content", "new_string")
     )
     for edit in tool_input.get("edits", []) or []:
         text += "\n" + str(edit.get("new_string", ""))
-    for name, pattern in SECRET_PATTERNS:
+    keystore = PROPERTIES_KEYSTORE_PASSWORD if path.endswith(".properties") else CODE_KEYSTORE_PASSWORD
+    for name, pattern in SECRET_PATTERNS + [("plain-text keystore password", keystore)]:
         if pattern.search(text):
             return f"Blocked: this change to {path} contains what looks like a {name}. {ADVICE}"
     return None
