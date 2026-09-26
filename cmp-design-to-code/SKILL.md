@@ -103,7 +103,8 @@ fun figtreeFamily(): FontFamily = FontFamily(
   the module that shows them, and draw them with
   `Icon(painterResource(Res.drawable.<id>), contentDescription = ..., tint = ...)`. Material icons
   are not on the classpath.
-- Texts shown in the design go into `strings.xml` (`cmp-code-rules`, section 11).
+- Texts shown in the design become string resources in every UI language (`cmp-code-rules`,
+  section 11).
 - Reuse components the project already has before writing new ones.
 
 ## 5. Build one to one

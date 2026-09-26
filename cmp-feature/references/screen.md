@@ -14,6 +14,8 @@ implemented by the ViewModel), follow that instead of mixing the two.
 | `collectAsStateWithLifecycle()` | `androidx.lifecycle.compose.collectAsStateWithLifecycle` |
 | `viewModelScope` | `androidx.lifecycle.viewModelScope` |
 | `SavedStateHandle`, `toRoute()` | `androidx.lifecycle.SavedStateHandle`, `androidx.navigation.toRoute` |
+| `LocalStringResources` (with `core/multilang`) | `<rootPackage>.core.designsystem.language.LocalStringResources` |
+| `LanguageManager`, `AppLanguage` | `<rootPackage>.core.multilang.language.*` |
 | `stringResource`, `painterResource` | `org.jetbrains.compose.resources.stringResource`, `...painterResource` |
 | `Res` and each key (`Res.string.title` needs `...generated.resources.title` too) | the module's `Res` package; see `cmp-verify`, `references/failures.md` |
 | `Dispatchers.IO` | `kotlinx.coroutines.Dispatchers` and `kotlinx.coroutines.IO` |
@@ -140,7 +142,8 @@ private fun RecipesContent(
 
 `ErrorState` shows a message and a retry button tagged `RecipesTestTags.RETRY`; `EmptyState`
 shows a message and, if the screen can create items, the action that does. Texts come from
-`stringResource`.
+`LocalStringResources.current` when the project has `core/multilang`, otherwise from
+`stringResource` (`cmp-code-rules`, section 11).
 
 The provider (generated under `navigation/`) calls the Route:
 
@@ -168,9 +171,11 @@ internal object RecipesTestTags {
 
 ## Resources
 
-- Strings, drawables and fonts go under `src/commonMain/composeResources/` of the module that uses
-  them: `values/strings.xml`, `drawable/`, `font/`. Icons Compass prepared are in `design/icons/`
-  as vector drawables; copy the ones the screen needs into `drawable/`.
+- Drawables and fonts go under `src/commonMain/composeResources/` of the module that uses them:
+  `drawable/`, `font/`. Strings go there too (`values/strings.xml`) only when the project has no
+  `core/multilang`; with it they are `StringResourcesUiModel` properties (`cmp-code-rules`,
+  section 11). Icons Compass prepared are in `design/icons/` as vector drawables; copy the ones
+  the screen needs into `drawable/`.
 - The module's build file must enable Android resources, or the files never reach the APK. Both
   gates stay green without it; the app then fails on Android when it loads the resource (measured
   on an app generated from this template: 30 resource files in the APK with the setting, 0
@@ -196,7 +201,8 @@ compose.resources {
 }
 ```
 
-- Use them with `stringResource(Res.string.key)` and `painterResource(Res.drawable.key)`. Each key
+- Use them with `painterResource(Res.drawable.key)`, and `stringResource(Res.string.key)` in a
+  project without `core/multilang` (with it, `LocalStringResources.current.<property>`). Each key
   is its own import from the `Res` package (`...resources.Res` and `...resources.key`).
 
 ## Previews

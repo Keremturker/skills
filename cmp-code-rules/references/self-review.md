@@ -17,7 +17,8 @@ files; do not review the whole project.
 | `@Preview` under `src/commonMain` | breaks the iOS gate | remove, or move to `androidMain` (see `cmp-feature`) |
 | `println(` | debug output left behind; forbidden here, but detekt does not catch it (see `cmp-detekt`) | remove |
 | `!!` | crash instead of a handled case | `?:`, `requireNotNull` with a message, typed error |
-| a user-visible string literal in a composable | not translatable | `stringResource(Res.string.key)` |
+| a user-visible string literal in a composable | not translatable | a `StringResourcesUiModel` property (`core/multilang`), else `stringResource(Res.string.key)` |
+| a language object with empty strings, or a `StringResourcesUiModel` default that is not the English text | blank UI in that language | fill it; default = English text |
 | `catch (e: Exception)` or `runCatching` without rethrowing `CancellationException` | swallows cancellation; coroutines keep running | rethrow `CancellationException` first |
 | `.catch { emit(emptyList()) }` or any `emit(empty...)` in a catch | the error becomes "no data" | emit or return an error; the UI shows the error state |
 | `getOrNull()` or `?: emptyList()` on a result that can fail | the failure is silently dropped | handle the error branch |

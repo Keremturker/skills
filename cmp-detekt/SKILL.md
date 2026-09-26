@@ -70,7 +70,7 @@ What this configuration expects, so new code does not add findings:
 | Rule | Fix |
 |---|---|
 | `MagicNumber` | a named `private const val` at the top of the file, or move colours and sizes into the theme |
-| `MaxLineLength`, `MaximumLineLength` | wrap the expression; long texts belong in `strings.xml` anyway |
+| `MaxLineLength`, `MaximumLineLength` | wrap the expression; long texts belong in string resources anyway |
 | `CyclomaticComplexMethod` | split the function; a long `when` that maps ids to values becomes a map or data on the model |
 | `LongMethod`, `LongParameterList` | extract functions; group related parameters into a data class |
 | `PropertyName`, `TopLevelPropertyNaming` | rename to `SCREAMING_SNAKE_CASE` and update every use (Grep) |

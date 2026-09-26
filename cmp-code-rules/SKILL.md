@@ -136,16 +136,35 @@ An error is never turned into an empty list.
 - In any `catch (e: Exception)` or `runCatching` you write, rethrow `CancellationException`
   first.
 
-## 11. Strings and resources
+## 11. Strings, languages and resources
 
-- Every user-visible text comes from resources: `src/commonMain/composeResources/values/strings.xml`
-  in the module that shows it, read with `stringResource(Res.string.key)` from
-  `org.jetbrains.compose.resources`. If the project has `core/multilang`, use its mechanism
-  instead.
-- A module that gets `composeResources` must enable Android resources in its build file, or its
-  files are silently left out of the APK (`cmp-feature`, `references/screen.md`).
+- Every name in code is English: modules, packages, classes, files, string keys — even when the
+  request or the UI language is not.
+- No user-visible text is hard-coded in a composable.
+- If the project has `core/multilang` (Compass turns it on for every app):
+  - Each text is a property of `StringResourcesUiModel` with an English name (`expenseListTitle`),
+    and its default value is the English text, so a device language the app does not support
+    falls back to English instead of blank.
+  - Fill the language objects (`resourceEN`, `resourceTR`, …) for every UI language the task
+    names. Delete the languages it does not name from `AppLanguage` (keep `SYSTEM`),
+    `languageResources` and their `Resource<XX>.kt` files (Grep for each entry first). A language
+    object left with empty strings shows a blank UI.
+  - Read texts in composables with `LocalStringResources.current.<property>`.
+  - Language picker: `LanguageManager.setLanguage(AppLanguage.X)`, with `LanguageManager`
+    injected into the ViewModel as `@Provided`; "System default" is `AppLanguage.SYSTEM`; the
+    current choice comes from `getCurrentLanguageFlow()` into the ViewModel's state; each language
+    row shows a flag emoji and `AppLanguage.displayName` (the language's own name, not
+    translated); the "System default" label is a `StringResourcesUiModel` property, because
+    `SYSTEM.displayName` is a fixed English "System"; the picker and each row get a `testTag`
+    (`cmp-maestro`).
+- If there is no `core/multilang`: texts live in `src/commonMain/composeResources/values/strings.xml`
+  of the module that shows them, read with `stringResource(Res.string.key)` from
+  `org.jetbrains.compose.resources`.
+- A module that gets `composeResources` (fonts, drawables, sounds, or strings in the second case)
+  must enable Android resources in its build file, or its files are silently left out of the APK
+  (`cmp-feature`, `references/screen.md`).
 - Never `androidx.compose.ui.res.*`; it is Android-only and detekt forbids it.
-- If you add a machine translation, say so in your summary.
+- If you add a machine translation, say so in your final message.
 
 ## 12. Accessibility
 

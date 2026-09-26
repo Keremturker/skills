@@ -49,6 +49,8 @@ video from it.
    `kotlin { extensions.configure<KotlinMultiplatformAndroidLibraryExtension> { androidResources.enable = true } }`
    (full example in `cmp-feature`, `references/screen.md`). Without it the Android APK ships
    without those files while every gate stays green.
+7. Every name in the code is English: modules, packages, classes, files, string keys — whatever
+   language the request or the UI is in.
 
 ## How to work
 
