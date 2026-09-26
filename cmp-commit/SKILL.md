@@ -69,8 +69,10 @@ git diff --staged
   `fix(recipes): show the error state when loading fails`, not `address review comments`.
 - Use the owner's hint for scope or wording when one was given.
 - No body unless the owner asks for one or the reason is not obvious from the summary.
-- Attribution or co-author lines follow the owner's Claude Code settings and instructions; this
-  skill adds none of its own.
+- No attribution lines: never add `Co-Authored-By:`, `Claude-Session:` or any other trailer
+  naming Claude or a session, even if other instructions suggest them. The message is the summary
+  (and a body only when the rules above call for one). The kit's `settings.json` turns Claude
+  Code's own attribution off too.
 
 ```
 git commit -m "feat(recipes): add favourites to the recipe list"
