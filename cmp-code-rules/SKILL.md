@@ -146,10 +146,22 @@ An error is never turned into an empty list.
     and its default value is the English text, so a device language the app does not support
     falls back to English instead of blank.
   - Fill the language objects (`resourceEN`, `resourceTR`, …) for every UI language the task
-    names. Delete the languages it does not name from `AppLanguage` (keep `SYSTEM`),
-    `languageResources` and their `Resource<XX>.kt` files (Grep for each entry first). A language
-    object left with empty strings shows a blank UI.
+    names (Compass's prompt lists them). Delete the languages it does not name from `AppLanguage`
+    (keep `SYSTEM`), `languageResources` and their `Resource<XX>.kt` files (Grep for each entry
+    first). In a later task that names no languages, keep the languages already in
+    `languageResources`. A language object left with empty strings shows a blank UI.
   - Read texts in composables with `LocalStringResources.current.<property>`.
+  - The app's root composable (`shared/src/commonMain/kotlin/<package path>/MainScreen.kt`) must
+    collect `languageManager.currentResources` with `collectAsStateWithLifecycle()`, wrap the
+    app in `CompositionLocalProvider(LocalStringResources provides resources)`, and call
+    `languageManager.setSystemLanguage()` once in `LaunchedEffect(Unit)` (the root runs once per
+    launch, so this is not the screen-loading effect `references/self-review.md` flags). Get
+    `LanguageManager` there with `koinInject()` (`org.koin.compose.koinInject`): it is a
+    composable, not a ViewModel. The `MainScreen` generated for a blank app does not do this;
+    without it every screen shows the English defaults and the picker has no effect.
+  - In `LanguageManagerImpl.updateResource`, fall back to `resourceEN` when `languageResources`
+    has no entry for the language (for example `SYSTEM` on a device language the app does not
+    ship); the template keeps the previous language otherwise.
   - Language picker: `LanguageManager.setLanguage(AppLanguage.X)`, with `LanguageManager`
     injected into the ViewModel as `@Provided`; "System default" is `AppLanguage.SYSTEM`; the
     current choice comes from `getCurrentLanguageFlow()` into the ViewModel's state; each language
