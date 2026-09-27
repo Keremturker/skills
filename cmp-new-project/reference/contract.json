@@ -1,7 +1,7 @@
 {
   "_generated": {
     "by": "scripts/sync-contract.sh",
-    "date": "2026-06-14"
+    "date": "2026-09-27"
   },
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
@@ -34,19 +34,22 @@
   },
   "regex": {
     "projectName": "^[a-zA-Z]+$",
-    "packageName": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){2,}$",
+    "packageName": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*){2,}$",
     "moduleName": "^[a-z][a-z0-9]*$",
     "iosVersionFormat": "^\\d+(\\.\\d+){1,2}$"
   },
   "messages": {
     "projectNameSpaces": "Project Name cannot contain spaces",
     "projectNameInvalid": "Project Name must contain only letters (a-z, A-Z)",
+    "projectNameTooLong": "Project Name must be at most 30 characters",
     "packageNameSpaces": "Package Name cannot contain spaces",
-    "packageNameInvalid": "Invalid Package Name. Must start with a letter, contain at least two dots (3 segments), and use only lowercase letters, numbers, or underscores (e.g., com.example.app).",
-    "appNameInvalid": "App Name cannot have leading or trailing spaces",
-    "urlInvalid": "Invalid Base URL. Please enter a valid URL (e.g., https://api.example.com)",
+    "packageNameInvalid": "Invalid Package Name. Must start with a letter, contain at least two dots (3 segments), and use only lowercase letters and numbers (e.g., com.example.app). Segments cannot be Kotlin keywords (e.g., in, is, object), and the template's reserved package (or any package under it) cannot be used.",
+    "packageNameTooLong": "Package Name must be at most 50 characters",
+    "appNameInvalid": "App Name must be 1-30 characters using only letters, numbers, spaces and . _ ' - (no leading or trailing spaces)",
+    "urlInvalid": "Invalid Base URL. Please enter a valid http(s) URL of at most 100 characters without spaces, quotes, backslashes or $ (e.g., https://api.example.com)",
     "maxModulesReached": "Maximum 3 feature modules allowed",
-    "moduleNameInvalid": "Module name must start with a letter and contain only lowercase letters and numbers (a-z, 0-9)",
+    "moduleNameInvalid": "Module name must start with a letter, contain only lowercase letters and numbers (a-z, 0-9), and not be a Kotlin keyword (e.g., in, is, object)",
+    "moduleNameTooLong": "Module name must be at most 20 characters",
     "minSdkInvalid": "Min SDK must be a number between 24 and 36",
     "iosVersionInvalid": "iOS Version must be between 15.0 and 26.2"
   },

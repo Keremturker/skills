@@ -180,7 +180,7 @@ Endpoint resolution: ${c.endpointResolution}.
   "projectName": "MyApp",            // ${R.projectName}  · ≤${X.projectName} · no spaces
   "appName": "My App",               // trimmed, non-empty · ≤${X.appName}
   "packageName": "dev.cmpose.myapp", // ${R.packageName} · ≤${X.packageName} · ≥3 segments
-  "minSdk": "${L.minSdkMin}",                    // integer in [${L.minSdkMin}..${L.minSdkMax}]
+  "minSdk": "${L.minSdkMin}",                    // numeric string in [${L.minSdkMin}..${L.minSdkMax}]
   "iosVersion": "${L.iosVersionMin}",              // ${R.iosVersionFormat} in [${L.iosVersionMin}..${L.iosVersionMax}]
   "templateType": "blank",           // "blank" | "showcase"
   "featuresConfig": {                // used only for "blank"; ignored for "showcase"
@@ -205,7 +205,7 @@ Endpoint resolution: ${c.endpointResolution}.
 | packageName | \`${R.packageName}\` (≥3 segments) | ${X.packageName} |
 | module name | \`${R.moduleName}\` | ${X.moduleName} |
 | module count | ≤ \`maxModules\` (${L.maxModules}) | — |
-| minSdk | integer in [${L.minSdkMin}..${L.minSdkMax}] | ${X.minSdk} |
+| minSdk | numeric string in [${L.minSdkMin}..${L.minSdkMax}] | ${X.minSdk} |
 | iosVersion | \`${R.iosVersionFormat}\` within [${L.iosVersionMin}..${L.iosVersionMax}] | ${X.iosVersion} |
 | networkBaseUrl | valid URL if non-empty | ${X.networkBaseUrl} |
 
