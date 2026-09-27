@@ -12,7 +12,8 @@ prefer live `GET /api/config` + `GET /api/versions` over the static numbers belo
   - `400` → JSON `{ "error": "<validation message>" }`.
   - `429` → JSON `{ "error": "Too many requests", "message": "...", "retryAfterMinutes": N }`.
   - `413` → request body over `500kb` (usually a huge `detektYamlContent`).
-- `GET {apiBase}/api/config` → `{ minSdkMin, minSdkMax, iosVersionMin, iosVersionMax, maxModules, rateLimitMax, rateLimitWindowMinutes }` (LIVE limits).
+  - `415` → unsupported body charset or `Content-Encoding` (send plain UTF-8 JSON).
+- `GET {apiBase}/api/config` → `{ minSdkMin, minSdkMax, iosVersionMin, iosVersionMax, maxModules, reservedPackagePrefix, rateLimitMax, rateLimitWindowMinutes }` (LIVE limits).
 - `GET {apiBase}/api/versions` → `{ kotlin, agp, composeMultiplatform, gradle, jdk }` (LIVE library/tool versions — `jdk` is the build JDK).
 - `GET {apiBase}/api/rate-limit-status` → `{ remaining, limit, resetSeconds, isLimited }`.
 
@@ -22,15 +23,15 @@ Endpoint resolution: env CMP_API > defaults.json.apiBase > apiBaseDefault.
 ```jsonc
 {
   "projectName": "MyApp",            // ^[a-zA-Z]+$  · ≤30 · no spaces
-  "appName": "My App",               // trimmed, non-empty · ≤30
-  "packageName": "dev.cmpose.myapp", // ^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*){2,}$ · ≤50 · ≥3 segments
-  "minSdk": "24",                    // numeric string in [24..36]
+  "appName": "My App",               // letters/digits/space . _ ' - · trimmed · ≤30
+  "packageName": "dev.cmpose.myapp", // ^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*){2,}$ · ≤50 · ≥3 segments · no Kotlin keyword segments · not com.kturker.multiplatform or under it
+  "minSdk": "24",                    // numeric string (1–2 digits) in [24..36]
   "iosVersion": "15.0",              // ^\d+(\.\d+){1,2}$ in [15.0..26.2]
   "templateType": "blank",           // "blank" | "showcase"
   "featuresConfig": {                // used only for "blank"; ignored for "showcase"
     "network": true,
     "networkInspector": true,        // requires network=true
-    "networkBaseUrl": "",            // optional; must be a valid URL if non-empty (≤100)
+    "networkBaseUrl": "",            // optional; http(s) URL if non-empty · no whitespace, " \ $ · ≤100
     "theming": true,
     "multiLang": true,
     "dataStore": true,               // auto-true if theming || multiLang
@@ -45,13 +46,15 @@ Endpoint resolution: env CMP_API > defaults.json.apiBase > apiBaseDefault.
 | Field | Rule | Max len |
 |---|---|---|
 | projectName | `^[a-zA-Z]+$`, no spaces | 30 |
-| appName | trimmed, non-empty (no leading/trailing space) | 30 |
-| packageName | `^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*){2,}$` (≥3 segments) | 50 |
-| module name | `^[a-z][a-z0-9]*$` | 20 |
+| appName | non-empty, no leading/trailing space; only letters (any script, incl. combining marks), digits, space and `. _ ' -` | 30 |
+| packageName | `^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*){2,}$` (≥3 segments); no segment may be a Kotlin hard keyword (`kotlinHardKeywords`); must not equal or sit under the reserved template package `com.kturker.multiplatform` (`reservedPackagePrefix`) | 50 |
+| module name | `^[a-z][a-z0-9]*$`; not a Kotlin hard keyword | 20 |
 | module count | ≤ `maxModules` (3) | — |
-| minSdk | numeric string in [24..36] | 2 |
+| minSdk | numeric string of 1–2 digits, in [24..36] | 2 |
 | iosVersion | `^\d+(\.\d+){1,2}$` within [15.0..26.2] | 8 |
-| networkBaseUrl | valid URL if non-empty | 100 |
+| networkBaseUrl | `http://` or `https://` only; no whitespace, `"`, `\`, `$`; checked only for blank + `network: true` + non-empty | 100 |
+
+Kotlin hard keywords (`kotlinHardKeywords`): `as`, `break`, `class`, `continue`, `do`, `else`, `false`, `for`, `fun`, `if`, `in`, `interface`, `is`, `null`, `object`, `package`, `return`, `super`, `this`, `throw`, `true`, `try`, `typealias`, `typeof`, `val`, `var`, `when`, `while`.
 
 ## Always-on (not configurable, not in the payload)
 - **Dependency Injection (Koin)** and **Navigation** are always included.

@@ -33,7 +33,6 @@ const MODE = process.env.MODE;
 
 const pvPath  = path.join(BACKEND_DIR, 'shared', 'ProjectValidator.js');
 const cfgPath = path.join(BACKEND_DIR, 'config', 'config.js');
-const serverPath = path.join(BACKEND_DIR, 'server.js');
 const contractPath = path.join(SKILL_DIR, 'reference', 'contract.json');
 const payloadPath  = path.join(SKILL_DIR, 'reference', 'payload.md');
 
@@ -43,10 +42,13 @@ const warnings = [];
 const PV = require(pvPath);
 const CFG = require(cfgPath);
 
-// Make ProjectValidator's messages reflect config.js ranges (server does this at startup).
+// Configure ProjectValidator exactly like the server does at startup
+// (controllers/projectController.js), so messages and limits reflect config.js.
 PV.configure({
   minSdkMin: CFG.minSdkMin, minSdkMax: CFG.minSdkMax,
-  iosVersionMin: CFG.iosVersionMin, iosVersionMax: CFG.iosVersionMax
+  iosVersionMin: CFG.iosVersionMin, iosVersionMax: CFG.iosVersionMax,
+  maxModules: CFG.maxModules,
+  reservedPackagePrefix: CFG.oldPackageName
 });
 
 // --- Extract the regex literals from the validator source --------------------
@@ -64,12 +66,29 @@ const regex = {
   iosVersionFormat: grab(/validateIosVersion[\s\S]*?if\s*\(!\/([^\/\n]+)\/\.test/, 'iosVersionFormat', '^\\d+(\\.\\d+){1,2}$')
 };
 
-// --- Body size limit from server.js -----------------------------------------
-let maxBodyLimit = '500kb';
-try {
-  const sm = fs.readFileSync(serverPath, 'utf8').match(/limit:\s*['"]([^'"]+)['"]/);
-  if (sm) maxBodyLimit = sm[1];
-} catch (_) { warnings.push('could not read server.js body limit — defaulting to 500kb'); }
+// Kotlin hard keywords: rejected as package segments and as module names.
+// The list is private to the validator module, so it is read from the source.
+function grabKeywords() {
+  const m = pvSrc.match(/KOTLIN_HARD_KEYWORDS\s*=\s*\[([^\]]*)\]/);
+  const words = m ? (m[1].match(/'[^']*'|"[^"]*"/g) || []).map(w => w.slice(1, -1)) : [];
+  if (words.length) return words;
+  warnings.push('could not extract KOTLIN_HARD_KEYWORDS from ProjectValidator.js — using fallback');
+  return ['as', 'break', 'class', 'continue', 'do', 'else', 'false', 'for', 'fun', 'if', 'in', 'interface', 'is', 'null', 'object', 'package', 'return', 'super', 'this', 'throw', 'true', 'try', 'typealias', 'typeof', 'val', 'var', 'when', 'while'];
+}
+const kotlinHardKeywords = grabKeywords();
+
+// --- Body size limit: express.json({ limit }) lives in app.js (older backends: server.js)
+let maxBodyLimit = null;
+for (const file of ['app.js', 'server.js']) {
+  let src;
+  try { src = fs.readFileSync(path.join(BACKEND_DIR, file), 'utf8'); } catch (_) { continue; }
+  const m = src.match(/express\.json\(\s*\{[^}]*\blimit:\s*['"]([^'"]+)['"]/);
+  if (m) { maxBodyLimit = m[1]; break; }
+}
+if (!maxBodyLimit) {
+  maxBodyLimit = '500kb';
+  warnings.push('could not find express.json({ limit }) in app.js or server.js — defaulting maxBodyLimit to 500kb');
+}
 
 // --- Hand-maintained maps (NOT derivable from the backend over HTTP) ---------
 // TR + EN intent keywords → featuresConfig flag. Lowercase substring match.
@@ -124,7 +143,7 @@ function buildContract() {
       minSdkMax: CFG.minSdkMax,
       iosVersionMin: CFG.iosVersionMin,
       iosVersionMax: CFG.iosVersionMax,
-      maxModules: PV.MAX_MODULES,
+      maxModules: CFG.maxModules,
       targetSdk: CFG.targetSdk,
       compileSdk: CFG.compileSdk,
       rateLimitMax: CFG.rateLimitMaxRequests,
@@ -141,6 +160,9 @@ function buildContract() {
       networkBaseUrl: PV.MAX_LENGTH_BASE_URL
     },
     regex,
+    // Package/module rules beyond the regex (server: ProjectValidator.validatePackageName/ModuleName)
+    kotlinHardKeywords,
+    reservedPackagePrefix: CFG.oldPackageName,
     messages: PV.messages,
     templateTypes: ['blank', 'showcase'],
     featuresConfigKeys: ['network', 'networkInspector', 'networkBaseUrl', 'theming', 'multiLang', 'dataStore', 'detekt', 'detektYamlContent'],
@@ -168,7 +190,8 @@ prefer live \`GET /api/config\` + \`GET /api/versions\` over the static numbers 
   - \`400\` → JSON \`{ "error": "<validation message>" }\`.
   - \`429\` → JSON \`{ "error": "Too many requests", "message": "...", "retryAfterMinutes": N }\`.
   - \`413\` → request body over \`${L.maxBodyLimit}\` (usually a huge \`detektYamlContent\`).
-- \`GET {apiBase}${c.endpoints.config}\` → \`{ minSdkMin, minSdkMax, iosVersionMin, iosVersionMax, maxModules, rateLimitMax, rateLimitWindowMinutes }\` (LIVE limits).
+  - \`415\` → unsupported body charset or \`Content-Encoding\` (send plain UTF-8 JSON).
+- \`GET {apiBase}${c.endpoints.config}\` → \`{ minSdkMin, minSdkMax, iosVersionMin, iosVersionMax, maxModules, reservedPackagePrefix, rateLimitMax, rateLimitWindowMinutes }\` (LIVE limits).
 - \`GET {apiBase}${c.endpoints.versions}\` → \`{ kotlin, agp, composeMultiplatform, gradle, jdk }\` (LIVE library/tool versions — \`jdk\` is the build JDK).
 - \`GET {apiBase}${c.endpoints.rateLimitStatus}\` → \`{ remaining, limit, resetSeconds, isLimited }\`.
 
@@ -178,15 +201,15 @@ Endpoint resolution: ${c.endpointResolution}.
 \`\`\`jsonc
 {
   "projectName": "MyApp",            // ${R.projectName}  · ≤${X.projectName} · no spaces
-  "appName": "My App",               // trimmed, non-empty · ≤${X.appName}
-  "packageName": "dev.cmpose.myapp", // ${R.packageName} · ≤${X.packageName} · ≥3 segments
-  "minSdk": "${L.minSdkMin}",                    // numeric string in [${L.minSdkMin}..${L.minSdkMax}]
+  "appName": "My App",               // letters/digits/space . _ ' - · trimmed · ≤${X.appName}
+  "packageName": "dev.cmpose.myapp", // ${R.packageName} · ≤${X.packageName} · ≥3 segments · no Kotlin keyword segments · not ${c.reservedPackagePrefix} or under it
+  "minSdk": "${L.minSdkMin}",                    // numeric string (1–${X.minSdk} digits) in [${L.minSdkMin}..${L.minSdkMax}]
   "iosVersion": "${L.iosVersionMin}",              // ${R.iosVersionFormat} in [${L.iosVersionMin}..${L.iosVersionMax}]
   "templateType": "blank",           // "blank" | "showcase"
   "featuresConfig": {                // used only for "blank"; ignored for "showcase"
     "network": true,
     "networkInspector": true,        // requires network=true
-    "networkBaseUrl": "",            // optional; must be a valid URL if non-empty (≤${X.networkBaseUrl})
+    "networkBaseUrl": "",            // optional; http(s) URL if non-empty · no whitespace, " \\ $ · ≤${X.networkBaseUrl}
     "theming": true,
     "multiLang": true,
     "dataStore": true,               // auto-true if theming || multiLang
@@ -201,13 +224,15 @@ Endpoint resolution: ${c.endpointResolution}.
 | Field | Rule | Max len |
 |---|---|---|
 | projectName | \`${R.projectName}\`, no spaces | ${X.projectName} |
-| appName | trimmed, non-empty (no leading/trailing space) | ${X.appName} |
-| packageName | \`${R.packageName}\` (≥3 segments) | ${X.packageName} |
-| module name | \`${R.moduleName}\` | ${X.moduleName} |
+| appName | non-empty, no leading/trailing space; only letters (any script, incl. combining marks), digits, space and \`. _ ' -\` | ${X.appName} |
+| packageName | \`${R.packageName}\` (≥3 segments); no segment may be a Kotlin hard keyword (\`kotlinHardKeywords\`); must not equal or sit under the reserved template package \`${c.reservedPackagePrefix}\` (\`reservedPackagePrefix\`) | ${X.packageName} |
+| module name | \`${R.moduleName}\`; not a Kotlin hard keyword | ${X.moduleName} |
 | module count | ≤ \`maxModules\` (${L.maxModules}) | — |
-| minSdk | numeric string in [${L.minSdkMin}..${L.minSdkMax}] | ${X.minSdk} |
+| minSdk | numeric string of 1–${X.minSdk} digits, in [${L.minSdkMin}..${L.minSdkMax}] | ${X.minSdk} |
 | iosVersion | \`${R.iosVersionFormat}\` within [${L.iosVersionMin}..${L.iosVersionMax}] | ${X.iosVersion} |
-| networkBaseUrl | valid URL if non-empty | ${X.networkBaseUrl} |
+| networkBaseUrl | \`http://\` or \`https://\` only; no whitespace, \`"\`, \`\\\`, \`$\`; checked only for blank + \`network: true\` + non-empty | ${X.networkBaseUrl} |
+
+Kotlin hard keywords (\`kotlinHardKeywords\`): ${c.kotlinHardKeywords.map(k => '\`' + k + '\`').join(', ')}.
 
 ## Always-on (not configurable, not in the payload)
 - **Dependency Injection (Koin)** and **Navigation** are always included.
@@ -236,6 +261,7 @@ ${Object.entries(c.anatomy.coreModules).map(([m, r]) => `- \`${m}\`: ${r.require
 
 // --- Run ---------------------------------------------------------------------
 const fresh = buildContract();
+warnings.forEach(w => console.error('  WARN: ' + w));
 
 if (MODE === 'check') {
   if (!fs.existsSync(contractPath)) { console.error('DRIFT: reference/contract.json is missing — run sync-contract.sh'); process.exit(1); }
@@ -250,7 +276,6 @@ if (MODE === 'check') {
     process.exit(1);
   }
   console.log('OK: contract.json is in sync with the backend' + (warnings.length ? ` (warnings: ${warnings.length})` : ''));
-  warnings.forEach(w => console.error('  WARN: ' + w));
   process.exit(0);
 }
 
@@ -264,5 +289,4 @@ fs.mkdirSync(path.dirname(contractPath), { recursive: true });
 fs.writeFileSync(contractPath, JSON.stringify(out, null, 2) + '\n');
 fs.writeFileSync(payloadPath, renderPayloadMd(fresh, gen));
 console.log(`Wrote ${path.relative(SKILL_DIR, contractPath)} and ${path.relative(SKILL_DIR, payloadPath)}.`);
-warnings.forEach(w => console.error('  WARN: ' + w));
 NODE
