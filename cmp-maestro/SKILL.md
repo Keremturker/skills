@@ -75,6 +75,9 @@ actual fun Modifier.testTagsAsResourceId(): Modifier = this
 - Stay under 60 seconds. Every step costs time on an emulator: a measured flow with 59 steps and
   14 seconds of pauses produced a 95-second video. Aim for about 30 steps. Compass stops the flow
   at 120 seconds.
+- A tap that takes 10 seconds or more means the screen never stops changing: a looping animation
+  moves the layout or the accessibility tree (see `cmp-code-rules` section 8). Fix the animation,
+  not the flow.
 
 This shape passed `maestro check-syntax`:
 
@@ -168,8 +171,9 @@ For a quick look at a screen on a device when no permanent flow is needed.
 
 ## Headless runs
 
-- Maestro and adb cannot run here; write the flow, do not try to execute it. Compass plays it after
-  the coding step.
+- `maestro check-syntax .maestro/walkthrough.yaml` runs here: run it after writing the flow and fix
+  the flow until it prints `OK`. `maestro test` and `adb` do not run here (the connected device may
+  be the owner's phone); Compass plays the flow on an emulator after the coding step.
 - Verification is static: Grep every `id:` value in the flow against the `*TestTags` objects and
   fix any mismatch.
 - You will not see the run, so prefer generous timeouts over tight timing. Only pauses and waits

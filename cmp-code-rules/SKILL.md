@@ -116,6 +116,13 @@ Details and tables: `references/compose.md`.
   through `rememberUpdatedState`.
 - Values that change every frame (scroll offset, animation) are read in lambda modifiers
   (`offset { }`, `graphicsLayer { }`, `drawBehind { }`).
+- Looping animations (a flickering flame, a bobbing sprite, twinkling stars) leave the layout and
+  the accessibility tree still. Maestro waits for the UI hierarchy to settle before every tap; in a
+  measured walkthrough a flame that switched between a 5- and a 4-pixel-tall frame kept moving
+  everything around it, and each tap on that screen took 13 to 15 seconds. Give a frame animation
+  a fixed size (its largest frame), draw motion in `Canvas` / `drawBehind` or `graphicsLayer { }`
+  instead of changing size or padding, and wrap purely decorative moving elements in
+  `Modifier.clearAndSetSemantics { }`.
 - No `@Composable` modifier factories and no `composed { }`.
 - Event parameters are named `onX`, present tense (`onClick`, `onItemSelect`).
 - Material3 only. Material icons (`androidx.compose.material.icons`) are not on the classpath;
