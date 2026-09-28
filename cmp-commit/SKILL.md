@@ -28,9 +28,12 @@ git diff
 git diff --staged
 ```
 
-- Not a git repository yet (Compass does not create one): ask the owner before running
-  `git init`. The first commit then holds the project as it stands: stage its folders and root
-  files by name, as in step 5.
+- Compass normally creates the repository and makes the first commits itself (template, design
+  and assets, implementation; the owner can turn this off in Compass settings). Build outputs,
+  `release/` and the run report are kept out through `.git/info/exclude` — leave them unstaged.
+- Not a git repository yet (Compass's git setting was off or git was missing): ask the owner before
+  running `git init`. The first commit then holds the project as it stands: stage its folders and
+  root files by name, as in step 5.
 - Files that are already staged but do not belong to this change: stop and ask the owner before
   going on.
 - Understand every change you are about to commit. A file you did not touch and cannot explain is
