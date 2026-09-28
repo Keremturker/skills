@@ -27,8 +27,10 @@ there is no `package.json` with a `smoke` script there, stop and tell the user t
 
 ## 2. Show what will run
 
-Print the variants from the backend (the single source of truth):
+Print the variants from the backend (the single source of truth). `$B` is the backend path from
+step 1 (`$CMP_BACKEND_DIR`, else `~/StudioProjects/ProjectGenerator/cmp/Cmp-wizard-backend`):
 
+    B=${CMP_BACKEND_DIR:-$HOME/StudioProjects/ProjectGenerator/cmp/Cmp-wizard-backend}
     node -e "console.table(require('$B/scripts/smoke/variants.js').map(v => ({ name: v.name, type: v.templateType, package: v.packageName, modules: (v.features || []).join(' '), featuresConfig: JSON.stringify(v.featuresConfig || 'showcase defaults') })))"
 
 ## 3. Pick the arguments from the request
