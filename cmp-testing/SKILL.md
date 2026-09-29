@@ -1,26 +1,48 @@
 ---
 name: cmp-testing
-description: Use when adding or fixing unit tests in this Compose Multiplatform project — tests for a ViewModel, use case, repository or mapper, locking down a bug, adding commonTest dependencies to a module that has none — or when the test gate is red, counts zero tests, or a test fails or hangs.
+description: Use when adding or fixing unit tests in this Compose Multiplatform project — tests for a ViewModel, use case, repository or mapper, locking down a bug, adding commonTest dependencies to a module of an older project that has none — or when the test gate is red, counts zero tests, or a test fails or hangs.
 ---
 
 # Unit tests
 
 ## 1. Where tests run (measured on apps generated from this template)
 
-- `./gradlew allTests` runs `iosSimulatorArm64Test` in every module. Android host tests are not
-  enabled, so tests exist only in `src/commonTest/` and run as Kotlin/Native on the iOS simulator.
-  The build log warns that "android host tests are not enabled"; that is expected. Do not enable
-  them; the iOS run is what the gate counts.
-- Test code therefore follows the `commonMain` rules: no `java.*`, no `Thread.sleep`, no JUnit,
-  MockK or Mockito. Use `kotlin.test` (`@Test`, `@BeforeTest`, `@AfterTest`, `assertEquals`,
-  `assertIs`, `assertTrue`, `assertFailsWith`).
-- Results: `<module>/build/test-results/iosSimulatorArm64Test/TEST-*.xml`, with `tests="N"`,
-  `failures` and `errors` on the `testsuite` element. The gate counts `tests="N"` across these files;
-  **zero tests is a red gate**, even though `allTests` itself succeeds.
+First tell which generation the project is: the new template has `shared/src/androidHostTest` and
+its `build-logic/.../convention/configureKotlinMultiplatform.kt` mentions `commonTest`. A project
+generated before the template had tests has neither.
 
-## 2. Setup, once per module that gets tests
+- New template: every KMP module has Android host tests (source set `androidHostTest`, task
+  `testAndroidHostTest`) and `commonTest` dependencies `kotlin-test`, `kotlinx-coroutines-test` and
+  Turbine, all from the convention. `./gradlew allTests` runs the `commonTest` code on the JVM
+  (`testAndroidHostTest`) and on the iOS simulator (`iosSimulatorArm64Test`).
+- Older project: `allTests` runs `iosSimulatorArm64Test` only. Android host tests are not enabled,
+  so tests exist only in `src/commonTest/` and run as Kotlin/Native on the iOS simulator. The build
+  log warns that "android host tests are not enabled"; that is expected there. Do not enable them.
+- Test code follows the `commonMain` rules in both, because it runs on iOS: no `java.*`, no
+  `Thread.sleep`, no JUnit, MockK or Mockito. Use `kotlin.test` (`@Test`, `@BeforeTest`,
+  `@AfterTest`, `assertEquals`, `assertIs`, `assertTrue`, `assertFailsWith`).
+- Results: `<module>/build/test-results/testAndroidHostTest/` (new template only) and
+  `<module>/build/test-results/iosSimulatorArm64Test/`, `TEST-*.xml`, with `tests="N"`, `failures`
+  and `errors` on the `testsuite` element. The gate counts `tests="N"` across the
+  `iosSimulatorArm64Test` files; **zero tests is a red gate**, even though `allTests` itself
+  succeeds. Host-only tests such as `KoinGraphTest` (`shared/src/androidHostTest`) do not count
+  toward it.
+- `KoinGraphTest` fails when a class in the Koin graph needs a type no module in `appModules()`
+  defines, printing `<Class> needs <Type>`. Fix: add the module that defines the type to
+  `appModules()` in `initKoin.kt`. Do not add the type to its `extraTypes` unless it reaches the
+  graph another way.
 
-Dependencies go into the build file of the module that has the tests, never into `build-logic`.
+## 2. Setup
+
+New template: nothing to set up. Write tests in `src/commonTest/`; the dependencies come from the
+convention. Never add `turbine`, `kotlinx-coroutines-test` or `kotlin-test` to
+`gradle/libs.versions.toml` again (a duplicate key makes Gradle reject the catalog) and no per-module
+`commonTest.dependencies` is needed.
+
+### Projects generated before the template had tests
+
+Once per module that gets tests. Dependencies go into the build file of the module that has the
+tests, never into `build-logic`.
 
 `gradle/libs.versions.toml` (reuse the coroutines version key the catalog already has; in this
 template it is `kotlinxCoroutinesCore`):
@@ -49,7 +71,7 @@ kotlin {
 ```
 
 This exact setup compiled and ran on the iOS simulator in a generated app. For Ktor repository
-tests add `ktor-client-mock` with the catalog's existing Ktor version key.
+tests add `ktor-client-mock` with the catalog's existing Ktor version key (both generations).
 
 ## 3. Fakes, not mocks
 
@@ -95,7 +117,7 @@ internal class FakeRecipesRepository(
 - Mapper: only when it has branches (a missing id dropped, a default chosen).
 - Repository: error mapping, with Ktor's `MockEngine`, only when it adds logic beyond the
   template's `BaseRepository`.
-- Not tested: getters, branchless mappers, Koin wiring, composables.
+- Not tested: getters, branchless mappers, Koin wiring (the new template's `KoinGraphTest` covers it), composables.
 
 ## 5. Behaviour, not implementation
 
@@ -180,9 +202,9 @@ fun `a recipe marked as favourite appears in the favourites`() = runTest {
 
 ## 8. Run and read
 
-- The gate: `./gradlew allTests`. One module while iterating: `./gradlew :feature:<name>:<layer>:allTests`.
-- A failing test prints `<package>.<Class>.<test name>[iosSimulatorArm64] FAILED` and the file and
-  line; the assertion message (`Expected <2>, actual <3>.`) is in the `<failure message=...>` of the
+- The gate: `./gradlew allTests` (new template: JVM and iOS run; older: iOS only). One module while iterating: `./gradlew :feature:<name>:<layer>:allTests`.
+- A failing test prints `<package>.<Class>.<test name>[iosSimulatorArm64] FAILED` (the JVM run
+  prints its own line) and the file and line; the assertion message (`Expected <2>, actual <3>.`) is in the `<failure message=...>` of the
   XML.
 - Report the count from the XML files, not from "BUILD SUCCESSFUL".
 - A red test means the implementation is wrong, or the test misreads the requirement. Fix the one
