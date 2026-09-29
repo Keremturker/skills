@@ -45,6 +45,9 @@ internal sealed interface RecipesAction {
 }
 ```
 
+Generated modules use the other shape: `ui/<Name>Actions.kt` is an `internal interface` with one
+function per action (`fun onNavigateUp()`), implemented by the ViewModel and passed to the screen.
+
 Use a sealed interface for the state instead when the states cannot overlap (a form that is
 editing, saving or saved).
 

@@ -74,8 +74,8 @@ navigating to them crashes.
 
 On a blank app each feature also has a `<Name>Entry`: `@Single(binds = [FeatureEntry::class])` with
 its own `@Named("<Name>Entry")`, in `presentation/navigation/`. `MainScreen` collects all
-`FeatureEntry`s and hands them to the start screen (`GuideScreen`), which lists one button per
-entry that opens its `destination`. An entry in an unregistered presentation module is missing
+`FeatureEntry`s and hands them to `GuideScreen`, the developer placeholder a new blank app starts
+on (SKILL.md, section 4), which lists one button per entry that opens its `destination`. An entry in an unregistered presentation module is missing
 from that list. Older projects have no `FeatureEntry`.
 
 ## Rules

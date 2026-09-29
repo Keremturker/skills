@@ -46,9 +46,10 @@ feature/<name>/presentation/  ui/<Name>Screen.kt (Route + Content), ui/<Name>Vie
                               navigation/<Name>Provider.kt, navigation/<Name>Entry.kt
 ```
 
-On a blank app, `<Name>Entry` (a `FeatureEntry`) puts a button for the module on the start screen
-(`GuideScreen`), which opens the module's destination. Projects generated before the blank guide
-screen release have no `<Name>Entry` and no `FeatureEntry`.
+On a blank app, `<Name>Entry` (a `FeatureEntry`) puts a button for the module on `GuideScreen`,
+which opens the module's destination. `GuideScreen` is a developer placeholder the app opens on
+until you replace it (section 4), not a screen of the app. Projects generated before the blank
+guide screen release have no `<Name>Entry` and no `FeatureEntry`.
 
 - Packages follow the generated files: `<rootPackage>.feature.<name>.<layer>` (projects generated
   before the blank guide screen release: `<rootPackage>.<name>.<layer>`) plus the sub-package
@@ -77,6 +78,12 @@ through callbacks or a passed-down `NavController`.
   registers `composable<XDestination> { XRoute() }` for each destination. `MainScreen` collects
   every provider from Koin, so a new destination needs no edit in `shared`. Only the start
   destination is set in `MainScreen.kt`.
+- A blank app generated from the blank guide screen release on starts at `GuideDestination`, the
+  developer placeholder. When you build the app, point `startDestination` in
+  `shared/.../MainScreen.kt` at the app's first destination (`shared` already depends on every
+  feature's `contract`), then delete `GuideScreen.kt` and, in `MainScreen.kt`, the
+  `composable<GuideDestination> { ... }` block, the `entries` and `uriHandler` lines and the
+  imports they leave unused. The `<Name>Entry` classes may stay or go.
 - The ViewModel navigates with the injected `NavigationManager`:
   `NavigationCommand.NavigateTo(XDestination(id))`, `NavigateUp`, `PopBackStackTo(...)`.
 - The ViewModel reads its arguments from `SavedStateHandle`: `savedStateHandle.toRoute<XDestination>()`.
@@ -148,7 +155,8 @@ Details and runtime diagnosis: `references/koin.md`.
 - New modules are in `settings.gradle.kts` and `shared/build.gradle.kts`, and every new `@Module`
   class is in `initKoin.kt`.
 - Each new destination is registered by a provider and reachable: something navigates to it, or it
-  is the start destination.
+  is the start destination. A `GuideScreen` button does not count for an app you ship: that app
+  starts at its own first destination, not at `GuideDestination` (section 4).
 - No DTO or entity appears in `domain` or `presentation`.
 - The screen's `<Name>TestTags` exist and are applied.
 - The Android and iOS gates from `cmp-verify` are green.
