@@ -6,9 +6,18 @@ description: Use when writing or repairing a Maestro flow for this app — the .
 # Maestro flows and test tags
 
 After the coding step Compass installs the signed release APK on an Android emulator, starts a
-screen recording and plays `.maestro/walkthrough.yaml`. If a step fails or the flow runs past the
-limit, the walkthrough stops there and Compass reports it as not run. The flow is for the video:
-it shows the app, it does not assert details.
+screen recording and plays `.maestro/walkthrough.yaml`. It then builds the iOS app for an iPhone
+simulator and plays **the same flow** there for a second video. If a step fails or the flow runs
+past the limit, the walkthrough stops there and Compass reports it as not run. The flow is for the
+video: it shows the app, it does not assert details.
+
+The one flow must run on both platforms:
+- Target elements only by `id:` (the testTags below; on iOS a Compose `testTag` is the
+  accessibility identifier Maestro matches). Avoid `text:` selectors for anything the language
+  switch changes.
+- No Android-only commands: no `back`, no `pressKey: back`/`home`, no Android intents or
+  `adb`-style steps, and do not rely on `hideKeyboard`. To go back, tap the app's own back button
+  by its `id`.
 
 ## 1. How `id:` finds a composable
 
