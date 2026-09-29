@@ -31,6 +31,9 @@ else
   exit 1
 fi
 
+# Unit tests and detekt both run, so one red result does not hide the other; fail at the end.
+FAILED=0
+
 # Templates with tests ship shared/src/androidHostTest, among them KoinGraphTest (every Koin
 # dependency defined); projects from older templates have none.
 if [ -d shared/src/androidHostTest ]; then
@@ -39,7 +42,7 @@ if [ -d shared/src/androidHostTest ]; then
     echo "OK: UNIT TESTS PASS"
   else
     echo "ERROR: unit tests failed (the FAILED lines above). A KoinGraphTest failure names the type no Koin module defines."
-    exit 1
+    FAILED=1
   fi
 else
   echo "unit tests: none in this project (generated before the template had tests), skipped."
@@ -52,8 +55,10 @@ if [ -f build-logic/src/main/kotlin/convention/DetektConventionPlugin.kt ]; then
     echo "OK: DETEKT CLEAN"
   else
     echo "ERROR: detekt found issues (the e: lines above). Fix them with the cmp-detekt skill."
-    exit 1
+    FAILED=1
   fi
 else
   echo "detekt: not enabled in this project, skipped."
 fi
+
+exit "$FAILED"
