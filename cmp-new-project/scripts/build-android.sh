@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Verify the generated project builds for Android and, when the project has detekt, that detekt is
-# clean. Runs with the project's own configuration cache (on in gradle.properties), so cache
-# regressions show up here too. Usage: build-android.sh <projectDir>
+# Verify the generated project builds for Android, that its unit tests pass on the JVM (Android
+# host) when the project has any, and, when the project has detekt, that detekt is clean. Runs
+# with the project's own configuration cache (on in gradle.properties), so cache regressions show
+# up here too. Usage: build-android.sh <projectDir>
 set -euo pipefail
 
 DIR="${1:?project dir required}"
@@ -28,6 +29,20 @@ if [ -n "$APK" ]; then
 else
   echo "ERROR: build finished but no APK was produced."
   exit 1
+fi
+
+# Templates with tests ship shared/src/androidHostTest, among them KoinGraphTest (every Koin
+# dependency defined); projects from older templates have none.
+if [ -d shared/src/androidHostTest ]; then
+  echo "Running unit tests (Android host)…"
+  if JAVA_HOME="$JH" ANDROID_HOME="$SDK" ./gradlew testAndroidHostTest --continue; then
+    echo "OK: UNIT TESTS PASS"
+  else
+    echo "ERROR: unit tests failed (the FAILED lines above). A KoinGraphTest failure names the type no Koin module defines."
+    exit 1
+  fi
+else
+  echo "unit tests: none in this project (generated before the template had tests), skipped."
 fi
 
 # Only projects generated with detekt have the convention plugin (and so a detekt task).
