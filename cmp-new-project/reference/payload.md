@@ -65,10 +65,13 @@ Kotlin hard keywords (`kotlinHardKeywords`): `as`, `break`, `class`, `continue`,
 - `theming: true` or `multiLang: true` ⇒ set `dataStore: true`.
 
 ## blank vs showcase
-- **blank**: `featuresConfig` reflects the user's choices; `features` = custom modules.
-- **showcase**: send `templateType:"showcase"`, `features: []`. The backend keeps the
-  default `home` + `onboarding` modules and **ignores `featuresConfig`** (it strips any
-  `home`/`onboarding` you put in `features`).
+- **blank**: `featuresConfig` reflects the user's choices; `features` = custom modules
+  (each name once; a duplicate is a 400).
+- **showcase**: send `templateType:"showcase"` and put any requested custom modules in
+  `features` (`features: []` when none). The backend keeps the default `home` +
+  `onboarding` modules and **ignores `featuresConfig`** (it strips any
+  `home`/`onboarding` you put in `features`). Custom modules are added next to them,
+  fully wired (their screens are registered; the showcase still opens on onboarding).
 
 ## Backend error messages (match these exactly when re-asking)
 - `projectNameSpaces`: Project Name cannot contain spaces
@@ -82,6 +85,7 @@ Kotlin hard keywords (`kotlinHardKeywords`): `as`, `break`, `class`, `continue`,
 - `maxModulesReached`: Maximum 3 feature modules allowed
 - `moduleNameInvalid`: Module name must start with a letter, contain only lowercase letters and numbers (a-z, 0-9), and not be a Kotlin keyword (e.g., in, is, object)
 - `moduleNameTooLong`: Module name must be at most 20 characters
+- `moduleNameDuplicate`: Each module name can be used only once
 - `minSdkInvalid`: Min SDK must be a number between 24 and 36
 - `iosVersionInvalid`: iOS Version must be between 15.0 and 26.2
 

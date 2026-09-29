@@ -48,14 +48,17 @@ Use these silently. They appear in the confirmation (step 3); the user changes a
 there if needed, or overrides them up front in their request.
 - **Template type → `showcase`** by default. Use `blank` ONLY if the request clearly
   indicates it ("blank", "boş proje", "no example screens", or it names specific
-  `featuresConfig` toggles / a custom set of features). Showcase ⇒ `home` +
-  `onboarding` + all sample core modules; `featuresConfig` is ignored.
+  `featuresConfig` toggles; custom modules alone do not imply it). Showcase ⇒ `home` +
+  `onboarding` + all sample core modules; `featuresConfig` is ignored. Custom modules
+  are still added next to `home` and `onboarding`, fully wired (their screens are
+  registered; the showcase still opens on onboarding).
 - **Min SDK → `defaults.minSdk`** (validate against live `config.minSdkMin/Max`).
 - **iOS Deployment Target → `defaults.iosVersion`** (validate `regex.iosVersionFormat`,
   within live `config.iosVersionMin/Max`).
 - **Features + custom modules → from the request ONLY, NEVER asked.** Parse via
-  `keywordMap` / module names. For the default `showcase` they're ignored by the
-  backend. If the request says `blank` but names no features, use blank-minimal (all
+  `keywordMap` / module names. For the default `showcase` the `featuresConfig`
+  toggles are ignored by the backend, but named modules go in `features`. If the
+  request says `blank` but names no features, use blank-minimal (all
   `featuresConfig` false, `features: []`). Apply dependency rules
   (`networkInspector ⇒ network`, `theming || multiLang ⇒ dataStore`).
 
@@ -101,7 +104,8 @@ Get a single yes/no before generating.
   report the reset time (`resetSeconds` → minutes) and offer to wait / use the local
   backend. **Don't POST** — it would be a guaranteed 429.
 - Build the payload exactly per `reference/payload.md`. **showcase** →
-  `templateType:"showcase"`, `features:[]` (a `featuresConfig` is harmless).
+  `templateType:"showcase"`, `features` = the requested custom modules (`[]` if none;
+  a `featuresConfig` is harmless).
   **blank** → the chosen `featuresConfig` + `features`.
 - Write the payload to a temp file (`mktemp`), then run
   `scripts/generate.sh <payload.json> <outputDir> <projectName>`.

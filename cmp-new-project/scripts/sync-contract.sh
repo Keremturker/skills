@@ -243,10 +243,13 @@ Kotlin hard keywords (\`kotlinHardKeywords\`): ${c.kotlinHardKeywords.map(k => '
 - \`theming: true\` or \`multiLang: true\` ⇒ set \`dataStore: true\`.
 
 ## blank vs showcase
-- **blank**: \`featuresConfig\` reflects the user's choices; \`features\` = custom modules.
-- **showcase**: send \`templateType:"showcase"\`, \`features: []\`. The backend keeps the
-  default \`home\` + \`onboarding\` modules and **ignores \`featuresConfig\`** (it strips any
-  \`home\`/\`onboarding\` you put in \`features\`).
+- **blank**: \`featuresConfig\` reflects the user's choices; \`features\` = custom modules
+  (each name once; a duplicate is a 400).
+- **showcase**: send \`templateType:"showcase"\` and put any requested custom modules in
+  \`features\` (\`features: []\` when none). The backend keeps the default \`home\` +
+  \`onboarding\` modules and **ignores \`featuresConfig\`** (it strips any
+  \`home\`/\`onboarding\` you put in \`features\`). Custom modules are added next to them,
+  fully wired (their screens are registered; the showcase still opens on onboarding).
 
 ## Backend error messages (match these exactly when re-asking)
 ${Object.entries(c.messages).map(([k, v]) => `- \`${k}\`: ${v}`).join('\n')}
