@@ -149,29 +149,35 @@ An error is never turned into an empty list.
   request or the UI language is not.
 - No user-visible text is hard-coded in a composable.
 - If the project has `core/multilang` (Compass turns it on for every app):
-  - Each text is a property of `StringResourcesUiModel` with an English name (`expenseListTitle`),
-    and its default value is the English text, so a device language the app does not support
-    falls back to English instead of blank.
+  - Each text is a property of `StringResourcesUiModel` with an English name (`expenseListTitle`).
+    When `LanguageManagerImpl` has `resourcesFor` (projects from template-2026.09.29.2 on), the
+    properties have no default value: every language object sets every property or the build
+    fails, and a device language the app does not ship shows the English object
+    (`fallbackResources`). In older projects each property's default value is its English text;
+    keep it that way.
   - Fill the language objects (`resourceEN`, `resourceTR`, …) for every UI language the task
     names (Compass's prompt lists them). Delete the languages it does not name from `AppLanguage`
     (keep `SYSTEM`), `languageResources` and their `Resource<XX>.kt` files (Grep for each entry
     first). In a later task that names no languages, keep the languages already in
     `languageResources`. A language object left with empty strings shows a blank UI.
   - Read texts in composables with `LocalStringResources.current.<property>`.
-  - The app's root composable (`shared/src/commonMain/kotlin/<package path>/MainScreen.kt`) must
-    collect `languageManager.currentResources` with `collectAsStateWithLifecycle()`, wrap the
-    app in `CompositionLocalProvider(LocalStringResources provides resources)`, and call
+  - The app's root composable (`shared/src/commonMain/kotlin/<package path>/MainScreen.kt`) provides
+    the strings: it collects `languageManager.currentResources`, wraps the app in
+    `CompositionLocalProvider(LocalStringResources provides resources)` and calls
     `languageManager.setSystemLanguage()` once in `LaunchedEffect(Unit)` (the root runs once per
-    launch, so this is not the screen-loading effect `references/self-review.md` flags). Get
-    `LanguageManager` there with `koinInject()` (`org.koin.compose.koinInject`): it is a
-    composable, not a ViewModel. The `MainScreen` generated for a blank app does not do this;
-    without it every screen shows the English defaults and the picker has no effect.
-  - Check that `LanguageManagerImpl` falls back to English when `languageResources` has no entry
-    for the language (for example `SYSTEM` on a device language the app does not ship). Newer
-    templates already do (`languageResources[active] ?: fallbackResources` in `resourcesFor`);
-    leave those alone. Older ones look up `languageResources[language]?.let { … }` in
-    `updateResource` and keep the previous language otherwise: add the fallback to `resourceEN`
-    there.
+    launch, so this is not the screen-loading effect `references/self-review.md` flags), with
+    `LanguageManager` from `koinInject()` (`org.koin.compose.koinInject`): it is a composable, not
+    a ViewModel.
+    - `shared/.../AppTheme.kt` exists: the project was generated from the release that added it or
+      later. Generated with this wiring: the showcase, and a blank app. Keep it when you change
+      `MainScreen`; it sits inside `AppTheme { … }`.
+    - A blank app without `AppTheme.kt` has a `MainScreen` without it: add it as above (collect
+      with `collectAsStateWithLifecycle()`). Without it every screen shows the English strings and
+      the picker has no effect.
+  - Older projects only (`LanguageManagerImpl` has `updateResource`, not `resourcesFor`): fall back
+    to `resourceEN` there when `languageResources` has no entry for the language (for example
+    `SYSTEM` on a device language the app does not ship); that template keeps the previous
+    language otherwise.
   - Language picker: `LanguageManager.setLanguage(AppLanguage.X)`, with `LanguageManager`
     injected into the ViewModel as `@Provided`; "System default" is `AppLanguage.SYSTEM`; the
     current choice comes from `getCurrentLanguageFlow()` into the ViewModel's state; each language
