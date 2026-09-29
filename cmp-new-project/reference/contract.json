@@ -79,7 +79,7 @@
     "appNameInvalid": "App Name must be 1-30 characters using only letters, numbers, spaces and . _ ' - (no leading or trailing spaces)",
     "urlInvalid": "Invalid Base URL. Please enter a valid http(s) URL of at most 100 characters without spaces, quotes, backslashes or $ (e.g., https://api.example.com)",
     "maxModulesReached": "Maximum 3 feature modules allowed",
-    "moduleNameInvalid": "Module name must start with a letter, contain only lowercase letters and numbers (a-z, 0-9), and not be a Kotlin keyword (e.g., in, is, object)",
+    "moduleNameInvalid": "Module name must start with a letter, contain only lowercase letters and numbers (a-z, 0-9), and not be a Kotlin keyword (e.g., in, is, object) or the reserved name build",
     "moduleNameTooLong": "Module name must be at most 20 characters",
     "moduleNameDuplicate": "Each module name can be used only once",
     "minSdkInvalid": "Min SDK must be a number between 24 and 36",
