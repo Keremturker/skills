@@ -110,6 +110,7 @@ Get a single yes/no before generating.
   - `2` RATE_LIMIT (429) → report `retryAfterMinutes`; **don't auto-loop** (prod = 5/15 min).
   - `3` VALIDATION (400) → show the backend `error` verbatim, map it to the field, re-ask, retry once.
   - `4` PAYLOAD_TOO_LARGE (413) → almost always a large `detektYamlContent`; offer to drop it or shrink it; retry.
+  - `5` BUSY (503) → too many generations running on the server; no quota was spent. Wait ~10 s and retry once.
   - `1` other/network/500 → show the message and stop; suggest checking prod or the local backend.
 
 ## 5. Setup

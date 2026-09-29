@@ -2,7 +2,7 @@
 # POST a payload to cmpose.dev /api/generate, download + extract the project zip.
 # Usage: generate.sh <payload.json> <outputDir> <projectName>
 # Endpoint: env CMP_API > defaults.json.apiBase > https://cmpose.dev
-# Exit: 0 ok · 2 rate-limit(429) · 3 validation(400) · 4 payload-too-large(413) · 1 other/network
+# Exit: 0 ok · 2 rate-limit(429) · 3 validation(400) · 4 payload-too-large(413) · 5 busy(503) · 1 other/network
 set -euo pipefail
 
 PAYLOAD="${1:?payload json path required}"
@@ -40,6 +40,7 @@ case "$CODE" in
   429)  echo "RATE_LIMIT: $(cat "$TMP")"; exit 2 ;;
   400)  echo "VALIDATION: $(cat "$TMP")"; exit 3 ;;
   413)  echo "PAYLOAD_TOO_LARGE: body over the server limit (usually a large detektYamlContent). $(cat "$TMP")"; exit 4 ;;
+  503)  echo "BUSY: server at its concurrent-generation limit, no quota spent. $(cat "$TMP")"; exit 5 ;;
   000)  echo "NETWORK_ERROR: could not reach $API/api/generate"; exit 1 ;;
   *)    echo "ERROR (HTTP $CODE): $(cat "$TMP")"; exit 1 ;;
 esac

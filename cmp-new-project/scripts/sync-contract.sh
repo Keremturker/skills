@@ -190,6 +190,7 @@ prefer live \`GET /api/config\` + \`GET /api/versions\` over the static numbers 
   - \`400\` → JSON \`{ "error": "<validation message>" }\`.
   - \`429\` → JSON \`{ "error": "Too many requests", "message": "...", "retryAfterMinutes": N }\`.
   - \`413\` → request body over \`${L.maxBodyLimit}\` (usually a huge \`detektYamlContent\`).
+  - \`503\` + \`Retry-After\` → the server is at its concurrent-generation limit; no quota was spent.
   - \`415\` → unsupported body charset or \`Content-Encoding\` (send plain UTF-8 JSON).
 - \`GET {apiBase}${c.endpoints.config}\` → \`{ minSdkMin, minSdkMax, iosVersionMin, iosVersionMax, maxModules, reservedPackagePrefix, rateLimitMax, rateLimitWindowMinutes }\` (LIVE limits).
 - \`GET {apiBase}${c.endpoints.versions}\` → \`{ kotlin, agp, composeMultiplatform, gradle, jdk }\` (LIVE library/tool versions — \`jdk\` is the build JDK).
