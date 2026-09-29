@@ -151,6 +151,9 @@ The provider (generated under `navigation/`) calls the Route:
 composable<RecipesDestination> { RecipesRoute() }
 ```
 
+Use the destination declared in the module's `contract/Screens.kt`: `<Name>Destination` in new
+projects, `<Name>ScreenDestination` in projects generated before the blank guide screen release.
+
 ## Test tags
 
 ```kotlin

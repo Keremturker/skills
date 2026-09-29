@@ -13,7 +13,7 @@ feature/<name>/
 ├── contract/
 │   ├── build.gradle.kts
 │   └── src/commonMain/kotlin/<pkg>/contract/
-│       └── Screens.kt                    all destinations of this feature (generated: <Name>Destination)
+│       └── Screens.kt                    all destinations of this feature (generated: <Name>Destination; older projects: <Name>ScreenDestination)
 ├── domain/
 │   ├── build.gradle.kts
 │   └── src/commonMain/kotlin/<pkg>/domain/
@@ -103,7 +103,7 @@ Extra dependencies of one module (for example `projects.core.database` in `data`
 | Thing | Name |
 |---|---|
 | Koin module classes | `<Name>DomainModule`, `<Name>DataModule`, `<Name>PresentationModule` |
-| Destination of the first screen | `<Name>Destination` (generated); others `<Thing>Destination` |
+| Destination of the first screen | `<Name>Destination` (generated; older projects: `<Name>ScreenDestination`); others `<Thing>Destination` |
 | Navigation provider | `<Name>Provider`, with `@Named("<Name>Provider")` |
 | Start-screen entry (blank apps) | `<Name>Entry`, a `FeatureEntry` with `@Named("<Name>Entry")` |
 | Route and Content | `<Screen>Route` (`internal`), `<Screen>Content` (`private`) |
