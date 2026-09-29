@@ -10,13 +10,14 @@ out why one is not.
    function.
 2. Its package is inside the `@ComponentScan("...")` package of its Gradle module's `@Module` class
    (the scan includes sub-packages).
-3. That `@Module` class is added to `shared/.../di/initKoin.kt`:
+3. That `@Module` class is added to `appModules()` in `shared/.../di/initKoin.kt` (older projects: the
+   `buildList` inside `initKoin`'s `startKoin { }`):
 
 ```kotlin
 import <pkg>.data.di.<Name>DataModule
 import org.koin.ksp.generated.module
 
-// inside initKoin's buildList { ... }
+// inside appModules()' buildList { ... }
 add(<Name>DataModule().module)
 ```
 
@@ -50,7 +51,9 @@ e: [ksp] --> Unreachable definition 'navigationManager:<pkg>.core.navigation.Nav
 ```
 
 The check trusts `@Provided`. If the module that really provides the type is missing from
-`initKoin.kt`, the build is green and the app crashes when the screen opens.
+`appModules()`, the build is green and the app crashes when the screen opens. In the new template
+`KoinGraphTest` (`testAndroidHostTest`) turns that into a failing test (`<Class> needs <Type>`); the
+build itself stays green. Older projects have no such test.
 
 ## Navigation providers
 
