@@ -7,7 +7,8 @@ description: >-
   cmpose.dev backend (`npm run smoke`). It generates every variant (showcase and the
   blank feature combinations) from one CmpTemplate ref, checks each project, builds
   Android and iOS, runs detekt and the unit tests (Koin graph check included), launches
-  every variant's RELEASE build on an Android emulator and an iOS simulator, and reports PASS/FAIL with screenshots. Use when the
+  every variant's RELEASE build on an Android emulator and an iOS simulator, and reports
+  PASS/FAIL with screenshots. Use when the
   user says "matris testini koş", "smoke", "run the generator matrix", "şablonu
   yayınlamadan önce doğrula", "release'leri emülatörde dene", or before tagging a
   template or deploying the backend.
@@ -35,7 +36,9 @@ step 1 (`$CMP_BACKEND_DIR`, else `~/StudioProjects/ProjectGenerator/cmp/Cmp-wiza
 
 ## 3. Pick the arguments from the request
 
-- A tag or branch of CmpTemplate ("template-2026.09.28", "TURKER") → `--ref <it>`.
+- A tag or branch of CmpTemplate ("template-2026.09.28", "TURKER") → `--ref <it>`. Templates
+  from before the test-infrastructure release fail the four "unit tests (Android host + iOS
+  simulator) incl. Koin graph" checks by design: report them as expected, not as product failures.
 - A template directory (e.g. the upstream checkout) → `--dir <path>`.
 - "quick", "sadece build", "hızlı" → add `--build-only` (skips the emulator/simulator runs).
 - Nothing given → no arguments: the backend's pinned template, full run.
