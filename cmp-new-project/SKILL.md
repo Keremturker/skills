@@ -123,10 +123,11 @@ Run `scripts/doctor.sh` once → capabilities JSON.
 - If `defaults.autoBuildAndroid` **and** `doctor.canBuildAndroid`: run
   `scripts/build-android.sh <projectDir>` **in the background**; report
   `BUILD SUCCESSFUL` + the APK path when done, the unit tests (Android host) when the
-  project has any (`UNIT TESTS PASS`, or skipped for older templates), and the detekt result: `DETEKT CLEAN`, or
-  skipped when the project was generated without detekt. A red detekt on a freshly
-  generated project is a generator defect, not the user's code: show the `e:` lines and
-  say so.
+  project has any (`UNIT TESTS PASS`, or skipped for older templates), and the detekt
+  result: `DETEKT CLEAN`, or skipped when the project was generated without detekt. A red
+  detekt or a red unit test on a freshly generated project is a generator/template defect,
+  not the user's code: show the `e:` / FAILED lines and say so; report it, do not patch the
+  project.
 - If `defaults.autoRunIos` **and** `doctor.canRunIos`: run
   `scripts/run-ios.sh <projectDir>` **in the background**; report when the app launches.
 - If a capability is missing, say so briefly and skip — never fail the whole flow.
