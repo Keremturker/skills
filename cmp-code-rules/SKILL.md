@@ -166,9 +166,12 @@ An error is never turned into an empty list.
     `LanguageManager` there with `koinInject()` (`org.koin.compose.koinInject`): it is a
     composable, not a ViewModel. The `MainScreen` generated for a blank app does not do this;
     without it every screen shows the English defaults and the picker has no effect.
-  - In `LanguageManagerImpl.updateResource`, fall back to `resourceEN` when `languageResources`
-    has no entry for the language (for example `SYSTEM` on a device language the app does not
-    ship); the template keeps the previous language otherwise.
+  - Check that `LanguageManagerImpl` falls back to English when `languageResources` has no entry
+    for the language (for example `SYSTEM` on a device language the app does not ship). Newer
+    templates already do (`languageResources[active] ?: fallbackResources` in `resourcesFor`);
+    leave those alone. Older ones look up `languageResources[language]?.let { … }` in
+    `updateResource` and keep the previous language otherwise: add the fallback to `resourceEN`
+    there.
   - Language picker: `LanguageManager.setLanguage(AppLanguage.X)`, with `LanguageManager`
     injected into the ViewModel as `@Provided`; "System default" is `AppLanguage.SYSTEM`; the
     current choice comes from `getCurrentLanguageFlow()` into the ViewModel's state; each language
