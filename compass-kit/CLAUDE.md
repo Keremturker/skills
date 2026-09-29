@@ -20,8 +20,8 @@ and runs out of memory.
 
 <!-- compass:gates -->
 
-The test gate counts the tests it runs, and zero tests is red: write unit tests as you go (see
-`cmp-testing`).
+The test gate counts the tests it runs on the iOS simulator, and zero tests is red: write unit
+tests as you go (see `cmp-testing`). Host-only tests such as `KoinGraphTest` do not count.
 
 The app also needs `.maestro/walkthrough.yaml` (see `cmp-maestro`); Compass records the demo
 video from it.

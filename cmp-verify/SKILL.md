@@ -31,7 +31,8 @@ Run the gates listed in `CLAUDE.md` under *Definition of done*, in that order.
 - The test gate is green only with tests. `allTests` succeeds even when no module has a test
   (every test task shows `NO-SOURCE` or `SKIPPED`), but zero tests counts as red. Results are in
   `<module>/build/test-results/iosSimulatorArm64Test/TEST-*.xml`; the `tests="N"` attribute is the
-  count. Read them with the Grep or Read tool.
+  count. The new template also writes `testAndroidHostTest/` results (JVM run, `KoinGraphTest`);
+  those are host-only and do not count toward the gate. Read them with the Grep or Read tool.
 - A task aimed at the wrong module is green and proves nothing (for example
   `:feature:x:domain:allTests` when the tests are in `data`).
 - The failing task names the layer:

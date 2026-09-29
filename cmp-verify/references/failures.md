@@ -34,6 +34,7 @@ Android one.
 |---|---|---|
 | `e: [ksp] --> Unreachable definition '<param>:<Type>' in '<Class>'. Fix your modules and configuration.` (measured, task `kspCommonMainKotlinMetadata`) | a constructor parameter provided by another Gradle module | `@Provided` on that parameter, or include the providing module in `@Module(includes = [...])` |
 | `Unresolved reference 'module'` or a module class import that does not resolve in `initKoin.kt` | the class lacks `@Module`, or `shared` does not depend on its Gradle module | add `@Module @ComponentScan(...)`; add `implementation(projects.<path>)` to `shared/build.gradle.kts` |
+| `KoinGraphTest` fails with `<Class> needs <Type>` (task `testAndroidHostTest`, new template) | no module in `appModules()` defines `<Type>` | add the module that defines it (usually the feature's domain or data module) to `appModules()` in `initKoin.kt`; use `extraTypes` only when the type reaches the graph another way |
 | `NoDefinitionFoundException` at runtime | wiring missing although the build is green | the order in `cmp-feature`, `references/koin.md` |
 
 ## Room
