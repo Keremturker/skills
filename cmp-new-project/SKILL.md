@@ -121,7 +121,10 @@ Run `scripts/doctor.sh` once → capabilities JSON.
 - If `defaults.openIde` and an IDE is available: `open -a "{ide}" <projectDir>`.
 - If `defaults.autoBuildAndroid` **and** `doctor.canBuildAndroid`: run
   `scripts/build-android.sh <projectDir>` **in the background**; report
-  `BUILD SUCCESSFUL` + the APK path when done.
+  `BUILD SUCCESSFUL` + the APK path when done, and the detekt result: `DETEKT CLEAN`, or
+  skipped when the project was generated without detekt. A red detekt on a freshly
+  generated project is a generator defect, not the user's code: show the `e:` lines and
+  say so.
 - If `defaults.autoRunIos` **and** `doctor.canRunIos`: run
   `scripts/run-ios.sh <projectDir>` **in the background**; report when the app launches.
 - If a capability is missing, say so briefly and skip — never fail the whole flow.

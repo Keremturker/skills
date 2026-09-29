@@ -114,7 +114,7 @@ cmp-new-project/
     ├── doctor.sh       # environment capability probe
     ├── generate.sh     # POST + download + extract
     ├── setup.sh        # local.properties + git
-    ├── build-android.sh# assembleDebug + APK check (JDK 21)
+    ├── build-android.sh# assembleDebug (config cache on) + APK check + detekt if enabled (JDK 21)
     └── run-ios.sh      # build + install + launch on a simulator
 ```
 
