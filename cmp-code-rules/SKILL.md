@@ -169,8 +169,8 @@ An error is never turned into an empty list.
     `LanguageManager` from `koinInject()` (`org.koin.compose.koinInject`): it is a composable, not
     a ViewModel.
     - `shared/.../AppTheme.kt` exists: the project was generated from the release that added it or
-      later. Generated with this wiring: the showcase, and a blank app. Keep it when you change
-      `MainScreen`; it sits inside `AppTheme { … }`.
+      later. Generated with this wiring: the showcase, and a blank app with Multi-Language. Keep it
+      when you change `MainScreen`; it sits inside `AppTheme { … }`.
     - A blank app without `AppTheme.kt` has a `MainScreen` without it: add it as above (collect
       with `collectAsStateWithLifecycle()`). Without it every screen shows the English strings and
       the picker has no effect.
