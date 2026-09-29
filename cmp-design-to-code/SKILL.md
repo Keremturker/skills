@@ -69,12 +69,10 @@ font px = sp.
 
 ## 4. Ground in the theme
 
-- Use the theme the project already has: `core/designsystem`'s palette when the project was
-  generated with it, or a `theme` package that already exists. Otherwise create one in
-  `core/presentation` under a `theme` package: colours, typography and a theme composable that
-  wraps `MaterialTheme`, applied once in `shared/.../MainScreen.kt` around the `Scaffold` (add
-  `implementation(projects.core.presentation)` to `shared/build.gradle.kts` if it is missing).
-  Name each file after the one type it declares.
+- Find the project's theme first. `shared/.../AppTheme.kt` exists: the project was generated from the release that added it or later. `MainScreen` already wraps the app in `AppTheme { … }`; never add a second `MaterialTheme` or theme composable around the `Scaffold`.
+  - With Theming: the palette (`CustomColorsPalette`, `OnLightColorsPalette`, `OnDarkColorsPalette`) and `KtTheme` are in `core/designsystem/.../theme/`. `KtTheme` provides `LocalColorsPalette` and maps the palette to `MaterialTheme.colorScheme` (`background`/`surface`, `onBackground`/`onSurface`, `onSurfaceVariant`, `primary`, `onPrimary`, `outline`) in `colorSchemeFor`; `AppTheme.kt` applies the user's Light/Dark/System choice through it. Add the design's colours to the palette class and both palettes, map them in `colorSchemeFor` when a Material role fits, and put typography and shapes into `KtTheme`'s `MaterialTheme(...)` call.
+  - Without Theming: `AppTheme.kt` is a plain `MaterialTheme` that follows the system. Put the colour scheme, typography and shapes there (`lightColorScheme(primary = …)`; a dark scheme only as the next bullet allows).
+- Projects without `AppTheme.kt`: use `core/designsystem`'s palette (package `darkmode`) when the project was generated with it, or a `theme` package that already exists. Otherwise create one in `core/presentation` under a `theme` package: colours, typography and a theme composable that wraps `MaterialTheme`, applied once in `shared/.../MainScreen.kt` around the `Scaffold` (add `implementation(projects.core.presentation)` to `shared/build.gradle.kts` if it is missing). Name each file after the one type it declares.
 - Colours: every measured colour becomes a named token in the theme. Map it to a
   `MaterialTheme.colorScheme` role when one fits (primary, background, surface, onSurface, error,
   outline). Colours with no role go into a small `@Immutable` data class provided through a
@@ -84,7 +82,7 @@ font px = sp.
 - One colour mode shown in the design: use it and list that under `Assumptions`. Do not invent a
   dark palette.
 - Fonts: copy the needed files from `design/fonts/` into
-  `src/commonMain/composeResources/font/` of the theme module. That module needs
+  `src/commonMain/composeResources/font/` of the theme module (`core/designsystem` with `KtTheme`, `shared` with a plain `AppTheme.kt`, else the module above). That module needs
   `androidResources.enable = true` (`cmp-feature`, `references/screen.md`, "Resources"), or the
   Android app falls back to the system font while every gate stays green. Build the family in a
   `@Composable` function, because `org.jetbrains.compose.resources.Font` is composable:
