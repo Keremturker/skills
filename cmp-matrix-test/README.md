@@ -10,6 +10,7 @@ the private cmpose.dev backend) and reports the result with screenshots.
   next to it (or `CMP_TEMPLATE_REPO`).
 - JDK 21, Android SDK with an AVD (`CMP_SMOKE_AVD`, default `Medium_Phone_API_36`) and
   `~/.android/debug.keystore`, Xcode with an iPhone simulator runtime.
+- `ffmpeg` for a full run (release screenshots are checked for a dark background).
 
 ## Usage
 

@@ -18,7 +18,8 @@ description: >-
 
 Runs the cmpose.dev backend's smoke gate and reports the result. Skill directory:
 `~/.claude/skills/cmp-matrix-test/`. The matrix itself lives in the backend
-(`scripts/smoke/`); this skill never hard-codes variants, check counts or feature names.
+(`scripts/smoke/`) and is the source of truth; the variant list and check counts in step 2 are
+a snapshot to check a run against.
 
 ## 1. Locate the backend
 
@@ -34,16 +35,28 @@ step 1 (`$CMP_BACKEND_DIR`, else `~/StudioProjects/ProjectGenerator/cmp/Cmp-wiza
     B=${CMP_BACKEND_DIR:-$HOME/StudioProjects/ProjectGenerator/cmp/Cmp-wizard-backend}
     node -e "console.table(require('$B/scripts/smoke/variants.js').map(v => ({ name: v.name, type: v.templateType, package: v.packageName, modules: (v.features || []).join(' '), featuresConfig: JSON.stringify(v.featuresConfig || 'showcase defaults') })))"
 
+Snapshot (B release): 7 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
+`BlankTheme`, `BlankLang` (these two came with the B release, for the blank shell's Theming and
+Multi-Language layers) and `BlankFull`. A full run has 96 checks, `--build-only` 44. If the table or the final count differs, the backend changed: go
+by the backend and mention the difference in the report.
+
 ## 3. Pick the arguments from the request
 
 - A tag or branch of CmpTemplate ("template-2026.09.28", "TURKER") → `--ref <it>`. Templates
-  from before the test-infrastructure release fail the four "unit tests (Android host + iOS
-  simulator) incl. Koin graph" checks by design: report them as expected, not as product failures.
+  from before the test-infrastructure release fail the "unit tests (Android host + iOS
+  simulator) incl. Koin graph" check of every variant that generates, by design: report them as
+  expected, not as product failures.
+- A ref older than the B release (no `blank/layers/` in it) fails `generated` for every blank
+  variant by design (HTTP 500, "template older than the B release"); those variants run no further
+  checks. Only the showcase variants are meaningful there: report the blank failures as expected.
 - A template directory (e.g. the upstream checkout) → `--dir <path>`.
 - "quick", "sadece build", "hızlı" → add `--build-only` (skips the emulator/simulator runs).
 - Nothing given → no arguments: the backend's pinned template, full run.
 
-Tell the user the expected duration (full ≈ 25–35 min, `--build-only` ≈ 7 min).
+Tell the user the expected duration (full ≈ 30–40 min, `--build-only` ≈ 5–10 min).
+
+A full run needs `ffmpeg` (the dark-screenshot check); without it the script stops with a
+`PREREQ:` line. `--build-only` does not need it.
 
 ## 4. Run it
 
@@ -51,6 +64,11 @@ Start `bash ~/.claude/skills/cmp-matrix-test/scripts/run.sh <args>` in the **bac
 and wait for its completion notification — do not poll. Do not change the command, the
 backend or the template while it runs. The smoke script only ever talks to `emulator-NNNN`
 serials and deletes only the simulator it created; never run adb against a physical device.
+
+Release runs happen in dark mode: the script switches the emulator (`cmd uimode night yes`) and
+the simulator (`simctl ui … appearance dark`) to dark and checks that each release screenshot's
+background is dark. A reused emulator or simulator gets its previous appearance back when the
+script exits.
 
 ## 5. Report
 
@@ -60,10 +78,12 @@ serials and deletes only the simulator it created; never run adb against a physi
   did not boot, missing AVD/runtime, disk). `PREREQ:` lines are environment problems.
 - For a full run, open every screenshot in `<dir>/shots/` with Read and describe what is on
   screen per variant (first screen shown? any dialog, especially a notification-permission
-  prompt, which must not appear in release builds?).
+  prompt, which must not appear in release builds?). Screenshots are expected dark; a light one
+  also shows up as a FAIL of "release background is dark".
 
 ## 6. When the generator gains a feature
 
-Nothing to change here. Add a variant to the backend's `scripts/smoke/variants.js`
+Add a variant to the backend's `scripts/smoke/variants.js`
 (`test/smokeVariants.test.js` fails until every `featuresConfig` flag and template type is
-covered) and run this skill.
+covered) and run this skill. Then update the snapshot in step 2 (variants and check counts) and
+the duration estimate in step 3.
