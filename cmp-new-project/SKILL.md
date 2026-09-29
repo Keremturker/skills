@@ -48,7 +48,7 @@ Use these silently. They appear in the confirmation (step 3); the user changes a
 there if needed, or overrides them up front in their request.
 - **Template type → `showcase`** by default. Use `blank` ONLY if the request clearly
   indicates it ("blank", "boş proje", "no example screens", or it names specific
-  `featuresConfig` toggles; custom modules alone do not imply it). Showcase ⇒ `home` +
+  `featuresConfig` toggles / a custom set of features). Showcase ⇒ `home` +
   `onboarding` + all sample core modules; `featuresConfig` is ignored. Custom modules
   are still added next to `home` and `onboarding`, fully wired (their screens are
   registered; the showcase still opens on onboarding).
