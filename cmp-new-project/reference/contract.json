@@ -68,6 +68,9 @@
     "when",
     "while"
   ],
+  "reservedModuleNames": [
+    "build"
+  ],
   "reservedPackagePrefix": "com.kturker.multiplatform",
   "messages": {
     "projectNameSpaces": "Project Name cannot contain spaces",
@@ -212,7 +215,7 @@
           "theming",
           "multiLang"
         ],
-        "note": "theme (darkmode) and/or language resources"
+        "note": "theme (palette + KtTheme) and/or LocalStringResources"
       },
       "core/multilang": {
         "requires": [
@@ -224,7 +227,7 @@
         "requires": [
           "dataStore"
         ],
-        "note": "DataStore persistence"
+        "note": "DataStore persistence; with theming also the saved Light/Dark/System choice (DarkModeManager)"
       }
     },
     "detektDir": {

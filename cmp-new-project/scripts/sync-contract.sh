@@ -77,6 +77,16 @@ function grabKeywords() {
 }
 const kotlinHardKeywords = grabKeywords();
 
+// Reserved module names: valid by the regex, rejected by the server (file processing skips build/).
+function grabReservedModuleNames() {
+  const m = pvSrc.match(/RESERVED_MODULE_NAMES\s*=\s*\[([^\]]*)\]/);
+  const words = m ? (m[1].match(/'[^']*'|"[^"]*"/g) || []).map(w => w.slice(1, -1)) : [];
+  if (words.length) return words;
+  warnings.push('could not extract RESERVED_MODULE_NAMES from ProjectValidator.js — using fallback');
+  return ['build'];
+}
+const reservedModuleNames = grabReservedModuleNames();
+
 // --- Body size limit: express.json({ limit }) lives in app.js (older backends: server.js)
 let maxBodyLimit = null;
 for (const file of ['app.js', 'server.js']) {
@@ -111,9 +121,9 @@ const anatomy = {
   alwaysNote: 'shared wires Koin (DI) + Navigation, which are always included.',
   coreModules: {
     'core/network':      { requires: ['network'], note: 'Ktor HTTP client' },
-    'core/designsystem': { requiresAny: ['theming', 'multiLang'], note: 'theme (darkmode) and/or language resources' },
+    'core/designsystem': { requiresAny: ['theming', 'multiLang'], note: 'theme (palette + KtTheme) and/or LocalStringResources' },
     'core/multilang':    { requires: ['multiLang'], note: 'i18n / localization' },
-    'core/database':     { requires: ['dataStore'], note: 'DataStore persistence' }
+    'core/database':     { requires: ['dataStore'], note: 'DataStore persistence; with theming also the saved Light/Dark/System choice (DarkModeManager)' }
   },
   detektDir: { requires: ['detekt'], path: 'detekt/' },
   showcaseFeatures: ['feature/home', 'feature/onboarding'],
@@ -162,6 +172,7 @@ function buildContract() {
     regex,
     // Package/module rules beyond the regex (server: ProjectValidator.validatePackageName/ModuleName)
     kotlinHardKeywords,
+    reservedModuleNames,
     reservedPackagePrefix: CFG.oldPackageName,
     messages: PV.messages,
     templateTypes: ['blank', 'showcase'],
@@ -227,7 +238,7 @@ Endpoint resolution: ${c.endpointResolution}.
 | projectName | \`${R.projectName}\`, no spaces | ${X.projectName} |
 | appName | non-empty, no leading/trailing space; only letters (any script, incl. combining marks), digits, space and \`. _ ' -\` | ${X.appName} |
 | packageName | \`${R.packageName}\` (≥3 segments); no segment may be a Kotlin hard keyword (\`kotlinHardKeywords\`); must not equal or sit under the reserved template package \`${c.reservedPackagePrefix}\` (\`reservedPackagePrefix\`) | ${X.packageName} |
-| module name | \`${R.moduleName}\`; not a Kotlin hard keyword | ${X.moduleName} |
+| module name | \`${R.moduleName}\`; not a Kotlin hard keyword; not a reserved name (${c.reservedModuleNames.map(n => '\`' + n + '\`').join(', ')}) | ${X.moduleName} |
 | module count | ≤ \`maxModules\` (${L.maxModules}) | — |
 | minSdk | numeric string of 1–${X.minSdk} digits, in [${L.minSdkMin}..${L.minSdkMax}] | ${X.minSdk} |
 | iosVersion | \`${R.iosVersionFormat}\` within [${L.iosVersionMin}..${L.iosVersionMax}] | ${X.iosVersion} |

@@ -49,7 +49,7 @@ Endpoint resolution: env CMP_API > defaults.json.apiBase > apiBaseDefault.
 | projectName | `^[a-zA-Z]+$`, no spaces | 30 |
 | appName | non-empty, no leading/trailing space; only letters (any script, incl. combining marks), digits, space and `. _ ' -` | 30 |
 | packageName | `^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*){2,}$` (≥3 segments); no segment may be a Kotlin hard keyword (`kotlinHardKeywords`); must not equal or sit under the reserved template package `com.kturker.multiplatform` (`reservedPackagePrefix`) | 50 |
-| module name | `^[a-z][a-z0-9]*$`; not a Kotlin hard keyword | 20 |
+| module name | `^[a-z][a-z0-9]*$`; not a Kotlin hard keyword; not a reserved name (`build`) | 20 |
 | module count | ≤ `maxModules` (3) | — |
 | minSdk | numeric string of 1–2 digits, in [24..36] | 2 |
 | iosVersion | `^\d+(\.\d+){1,2}$` within [15.0..26.2] | 8 |
@@ -92,9 +92,9 @@ Kotlin hard keywords (`kotlinHardKeywords`): `as`, `break`, `class`, `continue`,
 ## Anatomy (which modules appear)
 - Always: androidApp, iosApp, shared, core/domain, core/presentation, core/navigation, build-logic — shared wires Koin (DI) + Navigation, which are always included.
 - `core/network`: if network (Ktor HTTP client)
-- `core/designsystem`: if theming || multiLang (theme (darkmode) and/or language resources)
+- `core/designsystem`: if theming || multiLang (theme (palette + KtTheme) and/or LocalStringResources)
 - `core/multilang`: if multiLang (i18n / localization)
-- `core/database`: if dataStore (DataStore persistence)
+- `core/database`: if dataStore (DataStore persistence; with theming also the saved Light/Dark/System choice (DarkModeManager))
 - `detekt/`: if detekt
 - showcase adds: feature/home, feature/onboarding
 - each custom module → `feature/<name>` with layers: contract, data, domain, presentation
