@@ -14,6 +14,7 @@ implemented by the ViewModel), follow that instead of mixing the two.
 | `collectAsStateWithLifecycle()` | `androidx.lifecycle.compose.collectAsStateWithLifecycle` |
 | `viewModelScope` | `androidx.lifecycle.viewModelScope` |
 | `SavedStateHandle`, `toRoute()` | `androidx.lifecycle.SavedStateHandle`, `androidx.navigation.toRoute` |
+| `LocalColorsPalette` (with Theming) | `<rootPackage>.core.designsystem.theme.LocalColorsPalette`; `shared/.../AppTheme.kt` exists: the project was generated from the release that added it or later (projects without it: `.core.designsystem.darkmode.`) |
 | `LocalStringResources` (with `core/multilang`) | `<rootPackage>.core.designsystem.language.LocalStringResources` |
 | `LanguageManager`, `AppLanguage` | `<rootPackage>.core.multilang.language.*` |
 | `stringResource`, `painterResource` | `org.jetbrains.compose.resources.stringResource`, `...painterResource` |
