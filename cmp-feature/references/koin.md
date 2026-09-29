@@ -11,7 +11,17 @@ out why one is not.
 2. Its package is inside the `@ComponentScan("...")` package of its Gradle module's `@Module` class
    (the scan includes sub-packages).
 3. That `@Module` class is added to `appModules()` in `shared/.../di/initKoin.kt` (older projects: the
-   `buildList` inside `initKoin`'s `startKoin { }`):
+   `buildList` inside `initKoin`'s `startKoin { }`). A generated feature has three registrations,
+   one per layer, in this order (projects generated before the blank guide screen release only
+   have the presentation one for the first planned feature):
+
+```kotlin
+add(<Name>PresentationModule().module)
+add(<Name>DataModule().module)
+add(<Name>DomainModule().module)
+```
+
+   Adding a module by hand looks like this:
 
 ```kotlin
 import <pkg>.data.di.<Name>DataModule
@@ -61,6 +71,12 @@ Each feature's `<Name>Provider` is `@Single(binds = [NavGraphProvider::class])` 
 `@Named("<Name>Provider")`. `MainScreen` asks Koin for all `NavGraphProvider`s, so a provider whose
 presentation module is not registered in `initKoin.kt` silently contributes no destinations, and
 navigating to them crashes.
+
+On a blank app each feature also has a `<Name>Entry`: `@Single(binds = [FeatureEntry::class])` with
+its own `@Named("<Name>Entry")`, in `presentation/navigation/`. `MainScreen` collects all
+`FeatureEntry`s and hands them to the start screen (`GuideScreen`), which lists one button per
+entry that opens its `destination`. An entry in an unregistered presentation module is missing
+from that list. Older projects have no `FeatureEntry`.
 
 ## Rules
 

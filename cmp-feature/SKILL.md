@@ -13,10 +13,14 @@ The code rules for what goes inside the files are in `cmp-code-rules`.
 
 - Something with its own data and its own destination is a feature module. A screen that only
   shows another view of an existing feature's data goes into that feature's `presentation`.
-- Look in `settings.gradle.kts` first. The generator may already have created the module: the
-  first planned feature has starter files, and further planned features exist as empty shells
-  (four `build.gradle.kts` files, no sources). Fill an existing module; do not create a
-  parallel one.
+- Look in `settings.gradle.kts` first. The generator may already have created the module. From
+  the template release with the blank guide screen on, every planned feature is a complete
+  module: `contract/Screens.kt` (`<Name>Destination`), `presentation` with `<Name>Screen`
+  (Route + Screen), `<Name>UiState`, `<Name>Actions`, `<Name>ViewModel`, `<Name>Provider` and
+  `<Name>Entry`, and an empty `@Module` in `data` and `domain` — all three registered in
+  `appModules()`. Projects generated before that have starter files only in the first planned
+  feature and empty shells (four `build.gradle.kts`, no sources) for the rest. Fill an existing
+  module; do not create a parallel one.
 - When Compass started this run, its prompt names the module to use. Follow it.
 
 ## 2. Inspect before writing
@@ -38,17 +42,24 @@ feature/<name>/contract/      Screens.kt: destinations (@Serializable, Navigatio
 feature/<name>/domain/        model/, repository/<Name>Repository.kt, usecase/ (@Factory), di/<Name>DomainModule.kt
 feature/<name>/data/          repository/<Name>RepositoryImpl.kt (@Single(binds = ...)), model/ (DTOs), mapper/, di/<Name>DataModule.kt
 feature/<name>/presentation/  ui/<Name>Screen.kt (Route + Content), ui/<Name>ViewModel.kt, ui/<Name>UiState.kt,
-                              ui/<Name>Action.kt, ui/<Name>TestTags.kt, di/<Name>PresentationModule.kt,
-                              navigation/<Name>Provider.kt
+                              ui/<Name>Actions.kt, ui/<Name>TestTags.kt, di/<Name>PresentationModule.kt,
+                              navigation/<Name>Provider.kt, navigation/<Name>Entry.kt
 ```
 
-- Packages follow the generated files: `<rootPackage>.<name>.<layer>` plus the sub-package
-  (`...<name>.presentation.ui`), all lowercase. Copy the root from `Screens.kt`; do not invent one.
+On a blank app, `<Name>Entry` (a `FeatureEntry`) puts a button for the module on the start screen
+(`GuideScreen`), which opens the module's destination. Projects generated before the blank guide
+screen release have no `<Name>Entry` and no `FeatureEntry`.
+
+- Packages follow the generated files: `<rootPackage>.feature.<name>.<layer>` (projects generated
+  before the blank guide screen release: `<rootPackage>.<name>.<layer>`) plus the sub-package
+  (`...feature.<name>.presentation.ui`), all lowercase. Copy the root from `Screens.kt`; do not
+  invent one.
 - A new module is added to `settings.gradle.kts` (`include(":feature:<name>:<layer>")`) and to the
   `commonMain` dependencies of `shared/build.gradle.kts` (`implementation(projects.feature.<name>.<layer>)`).
-- Every module that gets injectable classes has a `@Module @ComponentScan` class in its `di/`
-  package, registered in `initKoin.kt`. The generator only created the presentation one; add the
-  domain and data ones when those layers get classes.
+- Every module's `@Module @ComponentScan` classes are registered in `appModules()` in
+  `initKoin.kt` (older projects: in the `buildList` inside `initKoin`). New projects already have
+  presentation, data and domain registered; in older ones add the data and domain modules when
+  those layers get classes.
 - Dependencies point inward: `presentation → domain`, `presentation → contract`, `data → domain`.
   Another feature is reached only through its `contract`.
 - Not every layer needs code. A screen with no data of its own leaves `domain` and `data` empty;
@@ -76,8 +87,9 @@ through callbacks or a passed-down `NavController`.
 
 Code shapes, imports and test tags: `references/screen.md`.
 
-- The generated `ui/<Name>Screen.kt` is a placeholder guide screen. Replace its content with the
-  real Route and Content, and make the provider call the Route.
+- The generated `ui/<Name>Screen.kt` is a placeholder screen (a Route and a private `<Name>Screen`
+  with a Back button). Replace its content with the real Route and Content, and make the provider
+  call the Route.
 - The Route (`internal`) takes the ViewModel from `koinViewModel()` and collects state. The Content
   (`private`) is stateless and draws loading, empty, error and content.
 - The screen root and every interactive element get a `Modifier.testTag(...)` from constants in

@@ -148,7 +148,7 @@ shows a message and, if the screen can create items, the action that does. Texts
 The provider (generated under `navigation/`) calls the Route:
 
 ```kotlin
-composable<RecipesScreenDestination> { RecipesRoute() }
+composable<RecipesDestination> { RecipesRoute() }
 ```
 
 ## Test tags

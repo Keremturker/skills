@@ -3,41 +3,44 @@
 ## Full tree
 
 Sources live under `src/commonMain/kotlin/<package path>/`. `<pkg>` below is
-`<rootPackage>.<name>`, for example `com.example.cookbook.recipes` for a `recipes` feature in an
-app whose root package is `com.example.cookbook`. Copy the real root from the generated
-`contract/Screens.kt`.
+`<rootPackage>.feature.<name>`, for example `com.example.cookbook.feature.recipes` for a `recipes`
+feature in an app whose root package is `com.example.cookbook`. Projects generated before the blank
+guide screen release use `<rootPackage>.<name>` (`com.example.cookbook.recipes`). Copy the real
+root from the generated `contract/Screens.kt`.
 
 ```
 feature/<name>/
 ├── contract/
 │   ├── build.gradle.kts
 │   └── src/commonMain/kotlin/<pkg>/contract/
-│       └── Screens.kt                    all destinations of this feature
+│       └── Screens.kt                    all destinations of this feature (generated: <Name>Destination)
 ├── domain/
 │   ├── build.gradle.kts
 │   └── src/commonMain/kotlin/<pkg>/domain/
 │       ├── model/<Thing>.kt              plain data classes
 │       ├── repository/<Name>Repository.kt
 │       ├── usecase/Get<Thing>UseCase.kt  one class per operation, @Factory
-│       └── di/<Name>DomainModule.kt
+│       └── di/<Name>DomainModule.kt      (generated, empty)
 ├── data/
 │   ├── build.gradle.kts
 │   └── src/commonMain/kotlin/<pkg>/data/
 │       ├── model/<Thing>Response.kt      DTOs (@Serializable), network only
 │       ├── mapper/<Thing>Mapper.kt       fun <Thing>Response.toDomain()
 │       ├── repository/<Name>RepositoryImpl.kt
-│       └── di/<Name>DataModule.kt
+│       └── di/<Name>DataModule.kt        (generated, empty)
 └── presentation/
     ├── build.gradle.kts
     └── src/commonMain/kotlin/<pkg>/presentation/
         ├── ui/<Name>Screen.kt            Route + Content (generated as a placeholder)
-        ├── ui/<Name>ViewModel.kt
-        ├── ui/<Name>UiState.kt
-        ├── ui/<Name>Action.kt
+        ├── ui/<Name>ViewModel.kt         (generated)
+        ├── ui/<Name>UiState.kt           (generated)
+        ├── ui/<Name>Actions.kt           interface implemented by the ViewModel (generated)
         ├── ui/<Name>TestTags.kt
         ├── ui/<sub>/...                  further screens of the feature, same file set
         ├── di/<Name>PresentationModule.kt   (generated)
-        └── navigation/<Name>Provider.kt     (generated)
+        └── navigation/
+            ├── <Name>Provider.kt         (generated)
+            └── <Name>Entry.kt            (generated, blank apps: button on the start screen)
 ```
 
 Platform-specific code goes into `src/androidMain/kotlin/...` and `src/iosMain/kotlin/...` of the
@@ -45,7 +48,7 @@ same module, with the same package.
 
 ## Build files
 
-These are the files the generator writes. The convention plugins already bring Koin (with
+These are the files the generator writes, in every planned feature of both generations. The convention plugins already bring Koin (with
 annotations and KSP), kotlinx-serialization and the `core/*` modules listed below; do not add them
 again.
 
@@ -100,8 +103,9 @@ Extra dependencies of one module (for example `projects.core.database` in `data`
 | Thing | Name |
 |---|---|
 | Koin module classes | `<Name>DomainModule`, `<Name>DataModule`, `<Name>PresentationModule` |
-| Destination of the first screen | `<Name>ScreenDestination` (generated); others `<Thing>Destination` |
+| Destination of the first screen | `<Name>Destination` (generated); others `<Thing>Destination` |
 | Navigation provider | `<Name>Provider`, with `@Named("<Name>Provider")` |
+| Start-screen entry (blank apps) | `<Name>Entry`, a `FeatureEntry` with `@Named("<Name>Entry")` |
 | Route and Content | `<Screen>Route` (`internal`), `<Screen>Content` (`private`) |
 | Test tag constants | `<Screen>TestTags`, values `snake_case` with a screen prefix |
 
@@ -124,5 +128,7 @@ import <pkg>.presentation.di.<Name>PresentationModule
 add(<Name>PresentationModule().module)
 ```
 
-6. `presentation/navigation/<Name>Provider.kt`, copied from an existing provider.
+6. `presentation/navigation/<Name>Provider.kt`, copied from an existing provider. On a blank app,
+   also `<Name>Entry.kt` copied from an existing one, if the module should be listed on the
+   start screen.
 7. Run the Android gate; then the iOS gate once the module compiles.
