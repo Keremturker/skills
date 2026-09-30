@@ -141,8 +141,8 @@ An error is never turned into an empty list.
 ## 10. Carrying errors
 
 - Expected failures do not escape as exceptions. The data layer catches them and returns a typed
-  result: the template's `RestResult` from `core/domain` when it exists, otherwise a small sealed
-  type.
+  result: the template's `RestResult` from `core/domain` when it exists (its `Error` carries a
+  `DataError` from template-2026.09.30.1 on), otherwise a small sealed type.
 - In any `catch (e: Exception)` or `runCatching` you write, rethrow `CancellationException`
   first.
 
