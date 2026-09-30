@@ -96,6 +96,9 @@ Wiring details and runtime diagnosis: `cmp-feature`, `references/koin.md`.
   already uses the template's `XActions` interface implemented by the ViewModel, keep that style
   instead of mixing the two.
 - The Route collects with `collectAsStateWithLifecycle()`.
+- An action that writes (save, add, delete, send) ignores repeats while it runs: an `isSaving`-style
+  flag in the UiState, checked in the ViewModel and disabling the button. Lists the user saves are
+  ordered by a stored, increasing sequence number, not by the device clock.
 - Navigation is a ViewModel call on the injected `NavigationManager`
   (`navigate(NavigationCommand.NavigateTo(destination))`). Other one-off events are rare; turn
   them into state where possible (a message the UI shows and then clears with an action).

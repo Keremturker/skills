@@ -15,6 +15,7 @@ files; do not review the whole project.
 | `map {`, `filter {`, `sortedBy {` in a composable body without `remember` | recomputed on every recomposition | move to the ViewModel or `remember(input)` |
 | `java.`, `android.`, `System.`, `String.format` under `src/commonMain` | breaks the iOS gate | common API or `expect`/`actual` |
 | `@Preview` under `src/commonMain` | breaks the iOS gate | remove, or move to `androidMain` (see `cmp-feature`) |
+| a ViewModel save/add/delete/send action with no in-flight guard | a double tap writes twice | an `isSaving`-style flag that the action checks and the button reads (section 7) |
 | `println(` | debug output left behind; forbidden here, but detekt does not catch it (see `cmp-detekt`) | remove |
 | `!!` | crash instead of a handled case | `?:`, `requireNotNull` with a message, typed error |
 | a user-visible string literal in a composable | not translatable | a `StringResourcesUiModel` property (`core/multilang`), else `stringResource(Res.string.key)` |
