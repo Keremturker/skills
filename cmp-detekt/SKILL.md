@@ -123,8 +123,7 @@ your final message. The gate stays red until it is fixed; silencing it is not an
 
 ## Headless runs
 
-- Only `./gradlew` runs; read the findings from its console output. `--auto-correct` is allowed and
-  expected.
+- Read the findings from the `./gradlew` console output. `--auto-correct` is allowed and expected.
 - Run Gradle in the foreground with a long Bash timeout. detekt itself takes seconds; the first
   build of the convention plugins takes longer.
 - Do not ask whether a finding is worth fixing: every finding is fixed. A finding you could not

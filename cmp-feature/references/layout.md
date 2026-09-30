@@ -131,4 +131,5 @@ add(<Name>PresentationModule().module)
 6. `presentation/navigation/<Name>Provider.kt`, copied from an existing provider. On a blank app,
    also `<Name>Entry.kt` copied from an existing one, if the module should be listed on the
    start screen.
-7. Run the Android gate; then the iOS gate once the module compiles.
+7. Run the Android gate once the module's files are in place; run the iOS gate on the schedule in
+   `cmp-verify`, section 2.
