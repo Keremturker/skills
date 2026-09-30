@@ -3,6 +3,7 @@
     "by": "scripts/sync-contract.sh",
     "date": "2026-09-30"
   },
+  "contractVersion": "2acd325d0f04",
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
     "generate": "/api/generate",

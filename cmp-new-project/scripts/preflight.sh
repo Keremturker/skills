@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # One call that returns the LIVE backend state the skill needs before generating:
-# config (limits), versions (libs/jdk), and rate-limit status — merged into one JSON.
+# config (limits), versions (libs/jdk), and rate-limit status — merged into one JSON,
+# plus contractCurrent (true/false/null: does the skill's contract.json match the server's contractVersion).
 # No jq/node required: the API already returns JSON, so we splice the raw objects in.
 #
 # Usage: preflight.sh
@@ -31,7 +32,15 @@ CFG="$(fetch /api/config)" && REACHABLE=true || { CFG=null; REACHABLE=false; }
 VER="$(fetch /api/versions)"          || VER=null
 RL="$(fetch /api/rate-limit-status)"  || RL=null
 
-printf '{"apiBase":"%s","reachable":%s,"config":%s,"versions":%s,"rateLimit":%s}\n' \
-  "$API" "$REACHABLE" "${CFG:-null}" "${VER:-null}" "${RL:-null}"
+# Is this skill's committed contract the server's current one? true / false / null (unknown)
+CONTRACT="$SKILL_DIR/reference/contract.json"
+pick_version() { grep -oE '"contractVersion"[[:space:]]*:[[:space:]]*"[0-9a-f]+"' | head -1 | sed -E 's/.*"([0-9a-f]+)"$/\1/'; }
+LIVE_V="$(printf '%s' "$CFG" | pick_version)"
+LOCAL_V="$( [ -f "$CONTRACT" ] && pick_version < "$CONTRACT" )"
+if [ -z "$LIVE_V" ] || [ -z "$LOCAL_V" ]; then CURRENT=null
+elif [ "$LIVE_V" = "$LOCAL_V" ]; then CURRENT=true; else CURRENT=false; fi
+
+printf '{"apiBase":"%s","reachable":%s,"config":%s,"versions":%s,"rateLimit":%s,"contractCurrent":%s}\n' \
+  "$API" "$REACHABLE" "${CFG:-null}" "${VER:-null}" "${RL:-null}" "$CURRENT"
 
 [ "$REACHABLE" = true ] || exit 1

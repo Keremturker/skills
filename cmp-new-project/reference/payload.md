@@ -14,7 +14,7 @@ prefer live `GET /api/config` + `GET /api/versions` over the static numbers belo
   - `413` → request body over `500kb` (usually a huge `detektYamlContent`).
   - `503` + `Retry-After` → the server is at its concurrent-generation limit; no quota was spent.
   - `415` → unsupported body charset or `Content-Encoding` (send plain UTF-8 JSON).
-- `GET {apiBase}/api/config` → `{ minSdkMin, minSdkMax, iosVersionMin, iosVersionMax, maxModules, reservedPackagePrefix, rateLimitMax, rateLimitWindowMinutes }` (LIVE limits).
+- `GET {apiBase}/api/config` → `{ minSdkMin, minSdkMax, iosVersionMin, iosVersionMax, maxModules, reservedPackagePrefix, rateLimitMax, rateLimitWindowMinutes, contractVersion }` (LIVE limits).
 - `GET {apiBase}/api/versions` → `{ kotlin, agp, composeMultiplatform, gradle, jdk }` (LIVE library/tool versions — `jdk` is the build JDK).
 - `GET {apiBase}/api/rate-limit-status` → `{ remaining, limit, resetSeconds, isLimited }`.
 

@@ -25,19 +25,22 @@ else uses smart defaults / the request and is shown (changeable) at the confirma
 step. Skill directory: `~/.claude/skills/cmp-new-project/`.
 
 Run scripts with `bash ~/.claude/skills/cmp-new-project/scripts/<name>.sh`.
-The contract is generated from the backend and checked live at runtime, so it
-never drifts — see *Maintenance*.
+The contract is generated from the backend; at runtime `preflight.sh` reports
+`contractCurrent`, so a stale skill is visible — see *Maintenance*.
 
 ## 0. Load contract + preferences + live state (silent)
 1. Read `reference/contract.json` (regexes, max lengths, backend messages,
    dependency rules, `anatomy`, TR+EN `keywordMap`) and `defaults.json` (prefs).
-2. Run `scripts/preflight.sh` (one call) → `{apiBase, reachable, config, versions, rateLimit}`.
+2. Run `scripts/preflight.sh` (one call) → `{apiBase, reachable, config, versions, rateLimit, contractCurrent}`.
    - **`reachable:false`** → tell the user the API is unreachable. If `apiBase` is
      cmpose.dev, prod may be down; they can run the backend locally and retry with
      `CMP_API=http://localhost:3000`. **Don't start the form / don't generate.**
    - Live **`config`** OVERRIDES contract.json numeric ranges + `maxModules`.
      Live **`versions`** = display versions + the build `jdk`. **`rateLimit`** feeds
      the pre-check in step 4.
+   - **`contractCurrent === false`** → tell the user one line: "Note: this skill's
+     contract is older than the server's (a maintainer should run
+     `sync-contract.sh`); live limits are used." and carry on. `null` → say nothing.
 3. **Pre-fill from the request:** if the user already named a field (project name,
    features, modules, "blank", a specific SDK/iOS, etc.), use it — via
    `keywordMap` / `templateKeywords` — as that field's value. This can both set the
@@ -151,8 +154,13 @@ run (Android Studio Run / iOS `iosApp` scheme), and the guide
 `scripts/sync-contract.sh` from the cmpose.dev backend source. Do not hand-edit them.
 - After the backend's validation/limits change: point `CMP_BACKEND_DIR` at your
   backend checkout and run `bash scripts/sync-contract.sh`.
-- Drift gate: `scripts/sync-contract.sh --check` exits non-zero if the committed
-  contract is stale.
+- Command: `CMP_BACKEND_DIR=<backend checkout> bash scripts/sync-contract.sh`. The
+  contract facts and `contractVersion` come from the backend's single contract
+  module; the version is computed only there, never in the skill.
+- Drift gate: `scripts/sync-contract.sh --check` exits 0 (in sync), 1 (drift:
+  contract is stale) or 2 (configuration error: node / `CMP_BACKEND_DIR`).
+- `preflight.sh` compares the committed `contractVersion` with the live
+  `/api/config` one and reports `contractCurrent` (true / false / null).
 - At runtime, **live** `/api/config` + `/api/versions` (via `preflight.sh`) always
   override the static numbers; `contract.json` is the offline fallback and the
   source for the regexes / message strings the API doesn't return.

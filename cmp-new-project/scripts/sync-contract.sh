@@ -4,10 +4,14 @@
 #
 # Usage:
 #   sync-contract.sh            # (re)generate reference/contract.json + reference/payload.md
-#   sync-contract.sh --check    # exit non-zero if the committed contract is stale (drift)
+#   sync-contract.sh --check    # verify the committed contract is current
 #
-# Backend dir: env CMP_BACKEND_DIR > default below.
+# Backend dir: env CMP_BACKEND_DIR (a checkout that has services/contract.js, the
+# backend's single contract module; contractVersion is computed only there).
 # Requires Node (the backend is Node, so it's already installed there).
+#
+# Exit codes: 0 = ok / written; 1 = --check found drift; 2 = configuration error
+# (node missing, CMP_BACKEND_DIR unset or wrong).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")/.." && pwd)"   # skill root (parent of scripts/)
@@ -17,10 +21,10 @@ MODE="generate"
 # Point this at your cmpose.dev backend checkout (the generator's source of truth).
 BACKEND_DIR="${CMP_BACKEND_DIR:-}"
 
-command -v node >/dev/null 2>&1 || { echo "ERROR: node is required for sync-contract.sh"; exit 1; }
-[ -n "$BACKEND_DIR" ] || { echo "ERROR: set CMP_BACKEND_DIR to your cmpose.dev backend checkout"; exit 1; }
-[ -d "$BACKEND_DIR" ] || { echo "ERROR: backend dir not found: $BACKEND_DIR"; exit 1; }
-[ -f "$BACKEND_DIR/shared/ProjectValidator.js" ] || { echo "ERROR: $BACKEND_DIR/shared/ProjectValidator.js missing"; exit 1; }
+command -v node >/dev/null 2>&1 || { echo "ERROR: node is required for sync-contract.sh"; exit 2; }
+[ -n "$BACKEND_DIR" ] || { echo "ERROR: set CMP_BACKEND_DIR to your cmpose.dev backend checkout"; exit 2; }
+[ -d "$BACKEND_DIR" ] || { echo "ERROR: backend dir not found: $BACKEND_DIR"; exit 2; }
+[ -f "$BACKEND_DIR/services/contract.js" ] || { echo "ERROR: $BACKEND_DIR/services/contract.js missing"; exit 2; }
 
 SKILL_DIR="$HERE" BACKEND_DIR="$BACKEND_DIR" MODE="$MODE" node <<'NODE'
 'use strict';
@@ -31,74 +35,13 @@ const SKILL_DIR = process.env.SKILL_DIR;
 const BACKEND_DIR = process.env.BACKEND_DIR;
 const MODE = process.env.MODE;
 
-const pvPath  = path.join(BACKEND_DIR, 'shared', 'ProjectValidator.js');
-const cfgPath = path.join(BACKEND_DIR, 'config', 'config.js');
 const contractPath = path.join(SKILL_DIR, 'reference', 'contract.json');
 const payloadPath  = path.join(SKILL_DIR, 'reference', 'payload.md');
 
 const warnings = [];
 
-// --- Pull live-but-static values straight out of the backend modules ----------
-const PV = require(pvPath);
-const CFG = require(cfgPath);
-
-// Configure ProjectValidator exactly like the server does at startup
-// (controllers/projectController.js), so messages and limits reflect config.js.
-PV.configure({
-  minSdkMin: CFG.minSdkMin, minSdkMax: CFG.minSdkMax,
-  iosVersionMin: CFG.iosVersionMin, iosVersionMax: CFG.iosVersionMax,
-  maxModules: CFG.maxModules,
-  reservedPackagePrefix: CFG.oldPackageName
-});
-
-// --- Extract the regex literals from the validator source --------------------
-const pvSrc = fs.readFileSync(pvPath, 'utf8');
-function grab(re, name, fallback) {
-  const m = pvSrc.match(re);
-  if (m && m[1]) return m[1];
-  warnings.push(`could not extract ${name} regex from ProjectValidator.js — using fallback`);
-  return fallback;
-}
-const regex = {
-  projectName:      grab(/validateProjectName[\s\S]*?return\s+\/([^\/\n]+)\/\.test/, 'projectName', '^[a-zA-Z]+$'),
-  packageName:      grab(/validatePackageName[\s\S]*?const\s+regex\s*=\s*\/([^\/\n]+)\//, 'packageName', '^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){2,}$'),
-  moduleName:       grab(/validateModuleName[\s\S]*?return\s+\/([^\/\n]+)\/\.test/, 'moduleName', '^[a-z][a-z0-9]*$'),
-  iosVersionFormat: grab(/validateIosVersion[\s\S]*?if\s*\(!\/([^\/\n]+)\/\.test/, 'iosVersionFormat', '^\\d+(\\.\\d+){1,2}$')
-};
-
-// Kotlin hard keywords: rejected as package segments and as module names.
-// The list is private to the validator module, so it is read from the source.
-function grabKeywords() {
-  const m = pvSrc.match(/KOTLIN_HARD_KEYWORDS\s*=\s*\[([^\]]*)\]/);
-  const words = m ? (m[1].match(/'[^']*'|"[^"]*"/g) || []).map(w => w.slice(1, -1)) : [];
-  if (words.length) return words;
-  warnings.push('could not extract KOTLIN_HARD_KEYWORDS from ProjectValidator.js — using fallback');
-  return ['as', 'break', 'class', 'continue', 'do', 'else', 'false', 'for', 'fun', 'if', 'in', 'interface', 'is', 'null', 'object', 'package', 'return', 'super', 'this', 'throw', 'true', 'try', 'typealias', 'typeof', 'val', 'var', 'when', 'while'];
-}
-const kotlinHardKeywords = grabKeywords();
-
-// Reserved module names: valid by the regex, rejected by the server (file processing skips build/).
-function grabReservedModuleNames() {
-  const m = pvSrc.match(/RESERVED_MODULE_NAMES\s*=\s*\[([^\]]*)\]/);
-  const words = m ? (m[1].match(/'[^']*'|"[^"]*"/g) || []).map(w => w.slice(1, -1)) : [];
-  if (words.length) return words;
-  warnings.push('could not extract RESERVED_MODULE_NAMES from ProjectValidator.js — using fallback');
-  return ['build'];
-}
-const reservedModuleNames = grabReservedModuleNames();
-
-// --- Body size limit: express.json({ limit }) lives in app.js (older backends: server.js)
-let maxBodyLimit = null;
-for (const file of ['app.js', 'server.js']) {
-  let src;
-  try { src = fs.readFileSync(path.join(BACKEND_DIR, file), 'utf8'); } catch (_) { continue; }
-  const m = src.match(/express\.json\(\s*\{[^}]*\blimit:\s*['"]([^'"]+)['"]/);
-  if (m) { maxBodyLimit = m[1]; break; }
-}
-if (!maxBodyLimit) {
-  maxBodyLimit = '500kb';
-  warnings.push('could not find express.json({ limit }) in app.js or server.js — defaulting maxBodyLimit to 500kb');
-}
+// The backend's single contract module: facts + version live there, not here.
+const { contractFacts, contractVersion } = require(path.join(BACKEND_DIR, 'services', 'contract.js'));
 
 // --- Hand-maintained maps (NOT derivable from the backend over HTTP) ---------
 // TR + EN intent keywords → featuresConfig flag. Lowercase substring match.
@@ -114,31 +57,11 @@ const keywordMap = {
 const templateKeywords = {
   showcase: ['showcase', 'example app', 'full example', 'sample app', 'demo app', 'örnek uygulama', 'örnek proje', 'her şey', 'hepsi', 'dolu']
 };
-// featuresConfig flag → core modules it adds (for the anatomy preview tree).
-// `requires` = all must be true; `requiresAny` = at least one true.
-const anatomy = {
-  always: ['androidApp', 'iosApp', 'shared', 'core/domain', 'core/presentation', 'core/navigation', 'build-logic'],
-  alwaysNote: 'shared wires Koin (DI) + Navigation, which are always included.',
-  coreModules: {
-    'core/network':      { requires: ['network'], note: 'Ktor HTTP client' },
-    'core/designsystem': { requiresAny: ['theming', 'multiLang'], note: 'theme (palette + KtTheme) and/or LocalStringResources' },
-    'core/multilang':    { requires: ['multiLang'], note: 'i18n / localization' },
-    'core/database':     { requires: ['dataStore'], note: 'DataStore persistence; with theming also the saved Light/Dark/System choice (DarkModeManager)' }
-  },
-  detektDir: { requires: ['detekt'], path: 'detekt/' },
-  showcaseFeatures: ['feature/home', 'feature/onboarding'],
-  customFeaturePath: 'feature/<name>',
-  customFeatureLayers: ['contract', 'data', 'domain', 'presentation']
-};
-const dependencyRules = {
-  alwaysOn: ['koin', 'navigation'],
-  implies: { networkInspector: ['network'] },        // inspector ⇒ network
-  auto:    { dataStore: ['theming', 'multiLang'] }    // theming || multiLang ⇒ dataStore
-};
-
 // --- Assemble the contract (everything except the volatile _generated block) -
 function buildContract() {
+  const f = contractFacts();
   return {
+    contractVersion: contractVersion(),
     apiBaseDefault: 'https://cmpose.dev',
     endpoints: {
       generate: '/api/generate',
@@ -149,37 +72,28 @@ function buildContract() {
     endpointResolution: 'env CMP_API > defaults.json.apiBase > apiBaseDefault',
     // STATIC fallback values. At runtime the skill prefers live GET /api/config.
     limits: {
-      minSdkMin: CFG.minSdkMin,
-      minSdkMax: CFG.minSdkMax,
-      iosVersionMin: CFG.iosVersionMin,
-      iosVersionMax: CFG.iosVersionMax,
-      maxModules: CFG.maxModules,
+      minSdkMin: f.limits.minSdkMin,
+      minSdkMax: f.limits.minSdkMax,
+      iosVersionMin: f.limits.iosVersionMin,
+      iosVersionMax: f.limits.iosVersionMax,
+      maxModules: f.limits.maxModules,
       sdkNote: 'targetSdk and compileSdk come from the template: GET {apiBase}/api/versions',
-      rateLimitMax: CFG.rateLimitMaxRequests,
-      rateLimitWindowMinutes: Math.round(CFG.rateLimitWindowMs / 60000),
-      maxBodyLimit
+      rateLimitMax: f.limits.rateLimitMax,
+      rateLimitWindowMinutes: f.limits.rateLimitWindowMinutes,
+      maxBodyLimit: f.limits.maxBodyLimit
     },
-    maxLengths: {
-      projectName: PV.MAX_LENGTH_PROJECT_NAME,
-      appName: PV.MAX_LENGTH_APP_NAME,
-      packageName: PV.MAX_LENGTH_PACKAGE_NAME,
-      moduleName: PV.MAX_LENGTH_MODULE_NAME,
-      minSdk: PV.MAX_LENGTH_MIN_SDK,
-      iosVersion: PV.MAX_LENGTH_IOS_VERSION,
-      networkBaseUrl: PV.MAX_LENGTH_BASE_URL
-    },
-    regex,
-    // Package/module rules beyond the regex (server: ProjectValidator.validatePackageName/ModuleName)
-    kotlinHardKeywords,
-    reservedModuleNames,
-    reservedPackagePrefix: CFG.oldPackageName,
-    messages: PV.messages,
-    templateTypes: ['blank', 'showcase'],
-    featuresConfigKeys: ['network', 'networkInspector', 'networkBaseUrl', 'theming', 'multiLang', 'dataStore', 'detekt', 'detektYamlContent'],
-    dependencyRules,
+    maxLengths: f.maxLengths,
+    regex: f.regex,
+    kotlinHardKeywords: f.kotlinHardKeywords,
+    reservedModuleNames: f.reservedModuleNames,
+    reservedPackagePrefix: f.reservedPackagePrefix,
+    messages: f.messages,
+    templateTypes: f.templateTypes,
+    featuresConfigKeys: f.featuresConfigKeys,
+    dependencyRules: f.dependencyRules,
     keywordMap,
     templateKeywords,
-    anatomy
+    anatomy: f.anatomy
   };
 }
 
@@ -202,7 +116,7 @@ prefer live \`GET /api/config\` + \`GET /api/versions\` over the static numbers 
   - \`413\` → request body over \`${L.maxBodyLimit}\` (usually a huge \`detektYamlContent\`).
   - \`503\` + \`Retry-After\` → the server is at its concurrent-generation limit; no quota was spent.
   - \`415\` → unsupported body charset or \`Content-Encoding\` (send plain UTF-8 JSON).
-- \`GET {apiBase}${c.endpoints.config}\` → \`{ minSdkMin, minSdkMax, iosVersionMin, iosVersionMax, maxModules, reservedPackagePrefix, rateLimitMax, rateLimitWindowMinutes }\` (LIVE limits).
+- \`GET {apiBase}${c.endpoints.config}\` → \`{ minSdkMin, minSdkMax, iosVersionMin, iosVersionMax, maxModules, reservedPackagePrefix, rateLimitMax, rateLimitWindowMinutes, contractVersion }\` (LIVE limits).
 - \`GET {apiBase}${c.endpoints.versions}\` → \`{ kotlin, agp, composeMultiplatform, gradle, jdk }\` (LIVE library/tool versions — \`jdk\` is the build JDK).
 - \`GET {apiBase}${c.endpoints.rateLimitStatus}\` → \`{ remaining, limit, resetSeconds, isLimited }\`.
 

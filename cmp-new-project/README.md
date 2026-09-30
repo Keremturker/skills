@@ -92,7 +92,8 @@ never drift:
 
 ```bash
 CMP_BACKEND_DIR=/path/to/backend bash scripts/sync-contract.sh              # regenerate
-bash scripts/sync-contract.sh --check                                       # drift gate (CI-friendly)
+CMP_BACKEND_DIR=/path/to/backend bash scripts/sync-contract.sh --check      # drift gate (CI-friendly)
+# exit codes: 0 = in sync, 1 = drift, 2 = configuration error (node / CMP_BACKEND_DIR)
 ```
 
 At runtime, **live** `/api/config` + `/api/versions` always override the static
