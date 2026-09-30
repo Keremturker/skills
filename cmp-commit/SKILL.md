@@ -32,7 +32,7 @@ git diff --staged
   and assets, implementation; the owner can turn this off in Compass settings). Build outputs,
   `release/` and the run report are kept out through `.git/info/exclude` — leave them unstaged.
 - Not a git repository yet (Compass's git setting was off or git was missing): ask the owner before
-  running `git init`. The first commit then holds the project as it stands: stage its folders and
+  running `git init -b main`. The first commit then holds the project as it stands: stage its folders and
   root files by name, as in step 5.
 - Files that are already staged but do not belong to this change: stop and ask the owner before
   going on.
