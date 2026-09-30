@@ -25,7 +25,7 @@ if [ ! -d "$SDK" ]; then
   exit 1
 fi
 
-echo "Building :androidApp:assembleDebug (JDK 21)…"
+echo "Building :androidApp:assembleDebug (JDK $JV)…"
 JAVA_HOME="$JH" ANDROID_HOME="$SDK" ./gradlew :androidApp:assembleDebug
 
 APK="$(find androidApp/build/outputs/apk/debug -name '*.apk' 2>/dev/null | head -1)"

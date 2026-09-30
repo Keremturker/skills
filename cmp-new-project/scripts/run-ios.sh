@@ -9,15 +9,7 @@ if [ "$(uname)" != "Darwin" ] || ! command -v xcodebuild >/dev/null 2>&1; then
 fi
 cd "$DIR/iosApp"
 
-# Pick a booted simulator, else boot the first available iPhone.
-SIM="$(xcrun simctl list devices booted 2>/dev/null | grep -oE '[0-9A-F-]{36}' | head -1 || true)"
-if [ -z "$SIM" ]; then
-  SIM="$(xcrun simctl list devices available 2>/dev/null | grep -E 'iPhone .*\(' | grep -oE '[0-9A-F-]{36}' | head -1 || true)"
-  [ -z "$SIM" ] && { echo "SKIP: no iPhone simulator available."; exit 1; }
-  xcrun simctl boot "$SIM" || true
-fi
-open -a Simulator || true
-
+# JDK check first: SKIP before any simulator is booted.
 JH="$(/usr/libexec/java_home -v21 2>/dev/null || true)"; [ -z "$JH" ] && JH="${JAVA_HOME:-}"
 if [ -z "$JH" ]; then
   echo "SKIP: JDK 21 not found (the iOS build needs it for the Kotlin framework). Install JDK 21 and re-run."
@@ -28,6 +20,16 @@ if [ -z "$JV" ] || [ "$JV" -lt 21 ]; then
   echo "SKIP: JAVA_HOME=$JH is JDK ${JV:-unknown}; the iOS build (Kotlin framework) needs JDK 21 or newer."
   exit 1
 fi
+
+# Pick a booted simulator, else boot the first available iPhone.
+SIM="$(xcrun simctl list devices booted 2>/dev/null | grep -oE '[0-9A-F-]{36}' | head -1 || true)"
+if [ -z "$SIM" ]; then
+  SIM="$(xcrun simctl list devices available 2>/dev/null | grep -E 'iPhone .*\(' | grep -oE '[0-9A-F-]{36}' | head -1 || true)"
+  [ -z "$SIM" ] && { echo "SKIP: no iPhone simulator available."; exit 1; }
+  xcrun simctl boot "$SIM" || true
+fi
+open -a Simulator || true
+
 DD="$(mktemp -d -t cmpios)"
 LOG="$(mktemp -t cmpioslog).log"
 

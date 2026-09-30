@@ -5,8 +5,8 @@ the private cmpose.dev backend) and reports the result with screenshots.
 
 ## Requirements
 
-- A checkout of the cmpose.dev backend (`CMP_BACKEND_DIR`, default
-  `~/StudioProjects/ProjectGenerator/cmp/Cmp-wizard-backend`) and a local CmpTemplate clone
+- A checkout of the cmpose.dev backend (`CMP_BACKEND_DIR`, required, no default;
+  set it e.g. in your shell profile) and a local CmpTemplate clone
   next to it (or `CMP_TEMPLATE_REPO`).
 - JDK 21, Android SDK with an AVD (`CMP_SMOKE_AVD`, default `Medium_Phone_API_36`) and
   `~/.android/debug.keystore`, Xcode with an iPhone simulator runtime.

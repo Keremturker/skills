@@ -7,12 +7,13 @@ set -uo pipefail
 OS="$(uname 2>/dev/null || echo unknown)"
 MACOS=false; [ "$OS" = "Darwin" ] && MACOS=true
 
+# NOTE: the JSON key "jdk21" is a public contract and is kept; its meaning is "JDK 21 or newer is available".
 JDK21_HOME=""
 if [ "$MACOS" = true ]; then
   JDK21_HOME="$(/usr/libexec/java_home -v21 2>/dev/null || true)"
 fi
 [ -z "$JDK21_HOME" ] && [ -n "${JAVA_HOME:-}" ] && JDK21_HOME="$JAVA_HOME"
-# Any JAVA_HOME is not enough: the build needs 21 or newer (AGP 9, the Gradle daemon criteria)
+# Any JAVA_HOME is not enough: the build needs JDK ≥ 21 (AGP 9, the Gradle daemon criteria)
 jdk_major() { "$1/bin/java" -version 2>&1 | sed -nE '1s/.*version "([0-9]+).*/\1/p'; }
 JDK21=false
 if [ -n "$JDK21_HOME" ] && [ "$(jdk_major "$JDK21_HOME")" -ge 21 ] 2>/dev/null; then JDK21=true; else JDK21_HOME=""; fi

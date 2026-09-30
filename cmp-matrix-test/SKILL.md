@@ -22,16 +22,16 @@ a snapshot to check a run against.
 
 ## 1. Locate the backend
 
-`$CMP_BACKEND_DIR`, else `~/StudioProjects/ProjectGenerator/cmp/Cmp-wizard-backend`. If
-there is no `package.json` with a `smoke` script there, stop and tell the user to set
-`CMP_BACKEND_DIR`.
+`$CMP_BACKEND_DIR` is required (no default path). If it is unset, or there is no `package.json`
+with a `smoke` script there, stop and tell the user to set `CMP_BACKEND_DIR` to their cmpose.dev
+backend checkout (e.g. in their shell profile).
 
 ## 2. Show what will run
 
 Print the variants from the backend (the single source of truth). `$B` is the backend path from
-step 1 (`$CMP_BACKEND_DIR`, else `~/StudioProjects/ProjectGenerator/cmp/Cmp-wizard-backend`):
+step 1 (`$CMP_BACKEND_DIR`):
 
-    B=${CMP_BACKEND_DIR:-$HOME/StudioProjects/ProjectGenerator/cmp/Cmp-wizard-backend}
+    B=${CMP_BACKEND_DIR:?set CMP_BACKEND_DIR to your cmpose.dev backend checkout}
     node -e "console.table(require('$B/scripts/smoke/variants.js').map(v => ({ name: v.name, type: v.templateType, package: v.packageName, modules: (v.features || []).join(' '), featuresConfig: JSON.stringify(v.featuresConfig || 'showcase defaults') })))"
 
 Snapshot (project-hygiene release, `template-2026.09.30.2`): 7 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
