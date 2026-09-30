@@ -176,12 +176,12 @@ class RecipesViewModelTest {
   `resetMain` that hits the real Main, and the Android host run fails at random with "Dispatchers.Main
   was accessed". Keep the view models a test creates in a list (`createdViewModels += it`) and cancel them
   in `@AfterTest`, as above.
-- Imports: `kotlin.test.*` names, `kotlinx.coroutines.test.*` (`runTest`, `setMain`, ...),
-  `kotlinx.coroutines.ExperimentalCoroutinesApi`, `kotlinx.coroutines.flow.first`,
-  `kotlinx.coroutines.cancelAndJoin`, `kotlinx.coroutines.job`, `androidx.lifecycle.viewModelScope`,
-  `app.cash.turbine.test`, each imported by name, in ktlint order (lexicographic, `kotlin.*` last;
-  the generator re-sorts them, so an unsorted file shows as a diff). The examples on this page ran green on the iOS
-  simulator.
+- Imports, each by name (the generator re-sorts them in ktlint order, lexicographic with `kotlin.*`
+  last, so an unsorted file shows as a diff): `androidx.lifecycle.viewModelScope`,
+  `app.cash.turbine.test`, `<rootPackage>.core.domain.DataError`, `kotlinx.coroutines.*`
+  (`ExperimentalCoroutinesApi`, `Dispatchers`, `cancelAndJoin`, `job`), `kotlinx.coroutines.flow.first`,
+  `kotlinx.coroutines.test.*` (`runTest`, `setMain`, `resetMain`, ...), `kotlin.test.*` names. The
+  examples on this page ran green on the iOS simulator.
 - Measured without `setMain`: a flow that emits at once still loads, but one that suspends never
   reaches the test and it fails with `UncompletedCoroutinesError` ("the test body did not run to
   completion").
@@ -205,11 +205,12 @@ fun `a recipe marked as favourite appears in the favourites`() = runTest {
 
 - A ViewModel that reads its route with `savedStateHandle.toRoute<...>()` cannot be built in the
   JVM run: `toRoute` decodes through an Android `Bundle`, which host tests stub
-  (`Method ... not mocked`). Read the argument by its name instead,
-  `checkNotNull(savedStateHandle[RecipeDetailDestination::id.name])`, and build the test's handle
-  with `SavedStateHandle(mapOf("id" to "1"))`.
-- Projects generated before `template-2026.09.30.1`: `RestResult.Error` is an object without a
-  reason (`RestResult.Error`, `onError { }`).
+  (`Method ... not mocked`). Read the argument by its name instead, with a declared type:
+  `private val id: String = checkNotNull(savedStateHandle[RecipeDetailDestination::id.name]) { "id missing" }`
+  (primitive and `String` arguments; a custom `NavType` keeps `toRoute`), and build the test's
+  handle with `SavedStateHandle(mapOf("id" to "1"))`.
+- Projects generated before `template-2026.09.30.1` (projects without `core/domain/.../DataError.kt`): `RestResult.Error` is an
+  object without a reason (`RestResult.Error`, `onError { }`).
 - An endless loop started in `init` (a ticker) never lets `runTest` finish. Bound it by a state, or
   start it from an action.
 

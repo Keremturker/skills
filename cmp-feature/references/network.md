@@ -76,7 +76,8 @@ internal fun RecipeResponse.toDomain(): Recipe? {
 - The screen picks its message from the `DataError`; the showcase does it once, in
   `StringResourcesUiModel.errorMessage(error)` (`core/multilang`). Add a sealed error of your own
   only for a reason `DataError` does not name (a rule the API reports inside a 200 body).
-- Projects generated before `template-2026.09.30.1`: `RestResult.Error` is an object without a reason.
+- Projects generated before `template-2026.09.30.1` (projects without `core/domain/.../DataError.kt`):
+  `RestResult.Error` is an object without a reason.
 
 ## Keys
 

@@ -86,7 +86,10 @@ through callbacks or a passed-down `NavController`.
   imports they leave unused. The `<Name>Entry` classes may stay or go.
 - The ViewModel navigates with the injected `NavigationManager`:
   `NavigationCommand.NavigateTo(XDestination(id))`, `NavigateUp`, `PopBackStackTo(...)`.
-- The ViewModel reads its arguments from `SavedStateHandle`: `savedStateHandle.toRoute<XDestination>()`.
+- The ViewModel reads its arguments from `SavedStateHandle` by name:
+  `private val id: String = checkNotNull(savedStateHandle[XDestination::id.name]) { "id missing" }`.
+  `toRoute<XDestination>()` works in the app but fails the JVM host test (`Bundle` not mocked); it
+  stays for custom `NavType` arguments. Details: `references/screen.md`.
 - To open another feature's screen, the presentation module depends on that feature's contract
   (`implementation(projects.feature.<other>.contract)`).
 

@@ -100,9 +100,14 @@ internal class RecipesViewModel(
 it in `viewModelScope` and use `.catch { }` to set the error state.
 
 A screen with arguments takes `private val savedStateHandle: SavedStateHandle` (Koin supplies it,
-no `@Provided`) and reads the argument by its name,
-`checkNotNull(savedStateHandle[RecipeDetailDestination::id.name])` (`toRoute()` works in the app too,
-but fails the JVM test run; `cmp-testing`).
+no `@Provided`) and reads the argument by its name, with a declared type:
+
+```kotlin
+private val id: String = checkNotNull(savedStateHandle[RecipeDetailDestination::id.name]) { "id missing" }
+```
+
+`toRoute()` works in the app too, but fails the JVM test run (`cmp-testing`). Reading by name is for
+primitive and `String` arguments; an argument of a custom `NavType` keeps `toRoute()`.
 
 ## Route and Content
 

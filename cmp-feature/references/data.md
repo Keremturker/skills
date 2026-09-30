@@ -2,7 +2,8 @@
 
 Examples use a `recipes` feature. `RestResult` (`Success`, `Error`, `Loading`), `DataError` (the
 reason an `Error` carries) and the flow helpers come from the template's `core/domain`. Projects
-generated before `template-2026.09.30.1`: `RestResult.Error` is an object without a reason.
+generated before `template-2026.09.30.1` (projects without `core/domain/.../DataError.kt`): `RestResult.Error` is an object
+without a reason.
 
 ## Model (domain)
 
