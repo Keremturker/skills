@@ -1,7 +1,8 @@
 # Domain and data layers
 
-Examples use a `recipes` feature. `RestResult` (`Success`, `Error`, `Loading`) and the flow helpers
-come from the template's `core/domain`.
+Examples use a `recipes` feature. `RestResult` (`Success`, `Error`, `Loading`), `DataError` (the
+reason an `Error` carries) and the flow helpers come from the template's `core/domain`. Projects
+generated before `template-2026.09.30.1`: `RestResult.Error` is an object without a reason.
 
 ## Model (domain)
 
@@ -26,9 +27,9 @@ interface RecipesRepository {
 
 - Only domain models cross this interface; never a DTO or an entity.
 - One-shot reads are `suspend`, observed data is `Flow<T>`.
-- Failures are typed: `RestResult` for network reads. `RestResult.Error` carries no detail; if the
-  UI must show different messages for different failures (and only then), add a sealed error type
-  in `domain` and map to it in `data`.
+- Failures are typed: `RestResult` for network reads. `RestResult.Error(error)` carries a
+  `DataError`: `Network`, `Http(code)`, `Serialization` or `Unknown(cause)`. Add a sealed error
+  type in `domain` only for a reason it does not name.
 
 ## Use cases (domain)
 
@@ -51,7 +52,8 @@ class ObserveFavoritesUseCase(@Provided private val repository: RecipesRepositor
 - One operation per class, exposed as `operator fun invoke`. Business rules (sorting, validation,
   combining sources) live here, not in the ViewModel.
 - `buildDefaultFlow` (from `core/domain`) emits `Loading(true)` first and `Loading(false)` last, and
-  turns an exception into `Error`. `Dispatchers.IO` needs `import kotlinx.coroutines.IO`.
+  turns an exception into `Error(DataError.Unknown(cause))`; a cancellation passes through.
+  `Dispatchers.IO` needs `import kotlinx.coroutines.IO`.
 - `@Provided` because the implementation is bound in the `data` module, not in `domain`.
 - Use cases are `public`: the presentation module uses them.
 

@@ -11,7 +11,9 @@ cannot work without one.
   `ignoreUnknownKeys = true`, and `defaultRequest { url(...) }` for the base URL. Leave the client
   configuration as it is.
 - `BaseRepository.request<T> { httpClient.get(...) }` returns `RestResult<T>`: `Success(body)`, or
-  `Error` for any failure (status, connection, parsing). It already runs on `Dispatchers.IO`.
+  `Error(error)` whose `DataError` (`core/domain`) names the reason: `Network` (no connection,
+  timeout), `Http(code)` (a status outside 2xx), `Serialization` (the body does not fit the DTO) or
+  `Unknown(cause)`. A cancelled call is rethrown, never an `Error`. It already runs on `Dispatchers.IO`.
 - `RestResult<T>.mapOnSuccess { value -> ... }` maps the success value (`value` is nullable).
 - The feature `data` convention plugin already adds `:core:network` and the Ktor client.
 
@@ -69,9 +71,12 @@ internal fun RecipeResponse.toDomain(): Recipe? {
 
 ## Errors
 
-- `request` already turns every failure into `RestResult.Error`; do not add try/catch around it.
-- Only if the UI shows different messages for "offline" and "server error", add a sealed error in
-  `domain` and map to it in `data`.
+- `request` already turns every failure into `RestResult.Error(DataError)`; do not add try/catch
+  around it.
+- The screen picks its message from the `DataError`; the showcase does it once, in
+  `StringResourcesUiModel.errorMessage(error)` (`core/multilang`). Add a sealed error of your own
+  only for a reason `DataError` does not name (a rule the API reports inside a 200 body).
+- Projects generated before `template-2026.09.30.1`: `RestResult.Error` is an object without a reason.
 
 ## Keys
 
