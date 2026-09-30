@@ -94,7 +94,7 @@ internal class FakeRecipesRepository(
     private val favorites = MutableStateFlow(recipes.filter { it.isFavorite })
 
     override suspend fun getRecipes(): RestResult<List<Recipe>> =
-        if (fail) RestResult.Error else RestResult.Success(recipes)
+        if (fail) RestResult.Error(DataError.Network) else RestResult.Success(recipes)
 
     override fun observeFavorites(): Flow<List<Recipe>> = favorites
 
@@ -139,14 +139,20 @@ private val pasta = Recipe(id = "1", title = "Pasta", imageUrl = null)
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecipesViewModelTest {
 
+    private val createdViewModels = mutableListOf<RecipesViewModel>()
+
     @BeforeTest
     fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
 
     @AfterTest
-    fun tearDown() = Dispatchers.resetMain()
+    fun tearDown() = runTest {
+        createdViewModels.forEach { it.viewModelScope.coroutineContext.job.cancelAndJoin() }
+        createdViewModels.clear()
+        Dispatchers.resetMain()
+    }
 
     private fun viewModel(repository: FakeRecipesRepository) =
-        RecipesViewModel(GetRecipesUseCase(repository), FakeNavigationManager())
+        RecipesViewModel(GetRecipesUseCase(repository), FakeNavigationManager()).also { createdViewModels += it }
 
     @Test
     fun `loaded recipes reach the screen state`() = runTest {
@@ -157,16 +163,24 @@ class RecipesViewModelTest {
 
     @Test
     fun `a failed load shows the error state instead of an empty list`() = runTest {
-        val state = viewModel(FakeRecipesRepository(fail = true)).uiState.first { it.hasError }
+        val state = viewModel(FakeRecipesRepository(fail = true)).uiState.first { it.error != null }
 
+        assertEquals(DataError.Network, state.error)
         assertTrue(state.recipes.isEmpty())
     }
 }
 ```
 
+- Teardown: cancel and join every view model's `viewModelScope` job inside `runTest`, before
+  `Dispatchers.resetMain()`. A load that finishes on IO resumes its parent on `Dispatchers.Main`; after
+  `resetMain` that hits the real Main, and the Android host run fails at random with "Dispatchers.Main
+  was accessed". Keep the view models a test creates in a list (`createdViewModels += it`) and cancel them
+  in `@AfterTest`, as above.
 - Imports: `kotlin.test.*` names, `kotlinx.coroutines.test.*` (`runTest`, `setMain`, ...),
   `kotlinx.coroutines.ExperimentalCoroutinesApi`, `kotlinx.coroutines.flow.first`,
-  `app.cash.turbine.test`, each imported by name. The examples on this page ran green on the iOS
+  `kotlinx.coroutines.cancelAndJoin`, `kotlinx.coroutines.job`, `androidx.lifecycle.viewModelScope`,
+  `app.cash.turbine.test`, each imported by name, in ktlint order (lexicographic, `kotlin.*` last;
+  the generator re-sorts them, so an unsorted file shows as a diff). The examples on this page ran green on the iOS
   simulator.
 - Measured without `setMain`: a flow that emits at once still loads, but one that suspends never
   reaches the test and it fails with `UncompletedCoroutinesError` ("the test body did not run to
@@ -189,6 +203,13 @@ fun `a recipe marked as favourite appears in the favourites`() = runTest {
 }
 ```
 
+- A ViewModel that reads its route with `savedStateHandle.toRoute<...>()` cannot be built in the
+  JVM run: `toRoute` decodes through an Android `Bundle`, which host tests stub
+  (`Method ... not mocked`). Read the argument by its name instead,
+  `checkNotNull(savedStateHandle[RecipeDetailDestination::id.name])`, and build the test's handle
+  with `SavedStateHandle(mapOf("id" to "1"))`.
+- Projects generated before `template-2026.09.30.1`: `RestResult.Error` is an object without a
+  reason (`RestResult.Error`, `onError { }`).
 - An endless loop started in `init` (a ticker) never lets `runTest` finish. Bound it by a state, or
   start it from an action.
 
