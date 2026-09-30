@@ -40,7 +40,7 @@ The contract is generated from the backend; at runtime `preflight.sh` reports
      the pre-check in step 4.
    - **`contractCurrent === false`** → tell the user one line: "Note: this skill's
      contract is older than the server's (a maintainer should run
-     `sync-contract.sh`); live limits are used." and carry on. `null` → say nothing.
+     `sync-contract.sh`, or update your skills clone); live limits are used." and carry on. `null` → say nothing.
 3. **Pre-fill from the request:** if the user already named a field (project name,
    features, modules, "blank", a specific SDK/iOS, etc.), use it — via
    `keywordMap` / `templateKeywords` — as that field's value. This can both set the

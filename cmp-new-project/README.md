@@ -87,8 +87,10 @@ your session model resumes afterward.
 ## Contract stays in sync with the backend
 
 `reference/contract.json` and `reference/payload.md` are **generated** from the
-cmpose.dev backend source by `scripts/sync-contract.sh`, so the validation rules
-never drift:
+cmpose.dev backend source by `scripts/sync-contract.sh`, which keeps the validation
+rules aligned with the backend at each release. A skill clone that lags behind is
+reported at runtime (`contractCurrent` from `preflight.sh`), and the live `config`
+then overrides the stale numbers:
 
 ```bash
 CMP_BACKEND_DIR=/path/to/backend bash scripts/sync-contract.sh              # regenerate
