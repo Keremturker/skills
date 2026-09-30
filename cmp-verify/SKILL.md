@@ -15,13 +15,13 @@ Run the gates listed in `CLAUDE.md` under *Definition of done*, in that order.
 - `./gradlew build` is not used: it also links release iOS frameworks and runs out of memory.
 - A red detekt gate is fixed with `cmp-detekt`; a red or empty test gate with `cmp-testing`.
 
-## 2. Build early and often
+## 2. When to build
 
-- Run the Android gate as soon as the first new file exists, then after each change. Wrong imports
-  are the most common failure and the compiler finds them in seconds.
-- Run the iOS gate after every larger step: a new module, new `expect`/`actual` code, anything in
-  `commonMain` that touches time, files, formatting or other platform APIs. Android compiling says
-  nothing about iOS.
+- Run the Android gate after each screen or module is in place, not after every change. Wrong
+  imports are the most common failure; one run finds all of them.
+- Run the iOS gate twice: once midway, after the first module and any `expect`/`actual` code or
+  `commonMain` code that touches time, files, formatting or other platform APIs, and once in the
+  final pass. Android compiling says nothing about iOS.
 - detekt and tests come once the code stands; the final pass runs every gate, in order.
 
 ## 3. Read the output correctly
@@ -32,7 +32,7 @@ Run the gates listed in `CLAUDE.md` under *Definition of done*, in that order.
   (every test task shows `NO-SOURCE` or `SKIPPED`), but zero tests counts as red. Results are in
   `<module>/build/test-results/iosSimulatorArm64Test/TEST-*.xml`; the `tests="N"` attribute is the
   count. The new template also writes `testAndroidHostTest/` results (JVM run, `KoinGraphTest`);
-  those are host-only and do not count toward the gate. Read them with the Grep or Read tool.
+  those are host-only and do not count toward the gate. Read them with Read or `grep`.
 - A task aimed at the wrong module is green and proves nothing (for example
   `:feature:x:domain:allTests` when the tests are in `data`).
 - The failing task names the layer:
@@ -83,10 +83,10 @@ Symptoms, causes and fixes: `references/failures.md`. The most frequent:
 
 ## Headless runs
 
-- Only `./gradlew` is available as a shell command. Read test reports and generated code with the
-  Read and Grep tools, not with shell commands.
+- There is no Grep or Glob tool. Besides `./gradlew`, Bash runs read-only commands and the few the
+  task prompt lists: search with `grep`, find files with `find` or `ls`, read files with Read.
 - Run Gradle in the foreground and wait for it. Give each call a long Bash timeout (up to ten
   minutes): the first build of a fresh project and the iOS compile can take several minutes, and a
   timed-out call looks like a failure.
-- Mind the turn budget: the Android gate often, the iOS gate at larger steps, detekt and tests
-  near the end, then all gates once more in order.
+- Mind the turn budget: the Android gate per screen or module, the iOS gate midway and at the end,
+  detekt and tests near the end, then all gates once more in order.

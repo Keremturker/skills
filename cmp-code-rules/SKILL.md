@@ -28,7 +28,7 @@ Rules for every Kotlin change in this project. How to scaffold a screen or a mod
   leave `data` (or `core/database`, where shared entities live).
 - `presentation`: ViewModel, UiState, actions, Route and Content composables, the navigation
   provider, test tags.
-- When a `contract` type changes, find its users with Grep and update them in the same change.
+- When a `contract` type changes, find its users with `grep` and update them in the same change.
 
 ## 3. Visibility
 
@@ -157,7 +157,7 @@ An error is never turned into an empty list.
     keep it that way.
   - Fill the language objects (`resourceEN`, `resourceTR`, …) for every UI language the task
     names (Compass's prompt lists them). Delete the languages it does not name from `AppLanguage`
-    (keep `SYSTEM`), `languageResources` and their `Resource<XX>.kt` files (Grep for each entry
+    (keep `SYSTEM`), `languageResources` and their `Resource<XX>.kt` files (`grep` for each entry
     first). In a later task that names no languages, keep the languages already in
     `languageResources`. A language object left with empty strings shows a blank UI.
   - Read texts in composables with `LocalStringResources.current.<property>`.

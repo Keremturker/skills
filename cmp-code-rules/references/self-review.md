@@ -1,6 +1,6 @@
 # Self-review before finishing
 
-Run this pass over the files you created or changed, before the final gates. Use Grep on those
+Run this pass over the files you created or changed, before the final gates. Use `grep` on those
 files; do not review the whole project.
 
 ## What to search for

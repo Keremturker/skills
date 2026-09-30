@@ -219,7 +219,7 @@ fun `a recipe marked as favourite appears in the favourites`() = runTest {
 
 ## Headless runs
 
-- Only `./gradlew` runs. Read the XML files with the Grep or Read tool.
+- There is no Grep tool: read the XML files with Read or `grep`.
 - The first test run compiles and links a Kotlin/Native test binary per module; give the Bash call
   a long timeout (up to ten minutes).
 - Do not ask which tests to write. Cover the minimum above, then the riskiest logic, and list what

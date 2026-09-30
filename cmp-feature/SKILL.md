@@ -163,7 +163,7 @@ Details and runtime diagnosis: `references/koin.md`.
 
 ## Headless runs
 
-- Write the files with Write and Edit. Run the Android gate as soon as the first new files exist
-  (build early), not after the whole feature is written.
+- Write the files with Write and Edit. Run the Android gate once the screen or module's files are in
+  place, not after every file and not only at the end (`cmp-verify`, section 2).
 - Do not ask which layers to create. Choose by need and list the choice under `Assumptions` in
   your final message.

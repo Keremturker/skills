@@ -33,11 +33,11 @@ Without that file the project has no detekt gate and this skill does not apply.
 ./gradlew detekt --auto-correct --continue
 ```
 
-- Run it twice, and after each pass count with a plain `./gradlew detekt --continue`. The count an
-  auto-correct run prints is not reliable, and the first pass rewraps code in ways that create new
-  wrapping findings, which the second pass fixes. Measured: an app built by the coding step went
-  from 436 findings to 26, then 21; a fresh project from the template from 77 to 10, then 1. Both
-  gates stayed green after the rewrite.
+- Run it once, then count with a plain `./gradlew detekt --continue`; the count an auto-correct run
+  prints is not reliable. The pass can rewrap code into a few new wrapping findings: fix them by hand
+  with the rest instead of running auto-correct again. Measured: an app built by the coding step went
+  from 436 findings to 26, a fresh project from the template from 77 to 10. Both gates stayed green
+  after the rewrite.
 - Nearly all of what it fixes is formatting: trailing commas, argument and parameter wrapping,
   function and class signature layout, blank lines, import order.
 - Findings in template files count like yours; a fresh project already has some with this
@@ -73,7 +73,7 @@ What this configuration expects, so new code does not add findings:
 | `MaxLineLength`, `MaximumLineLength` | wrap the expression; long texts belong in string resources anyway |
 | `CyclomaticComplexMethod` | split the function; a long `when` that maps ids to values becomes a map or data on the model |
 | `LongMethod`, `LongParameterList` | extract functions; group related parameters into a data class |
-| `PropertyName`, `TopLevelPropertyNaming` | rename to `SCREAMING_SNAKE_CASE` and update every use (Grep) |
+| `PropertyName`, `TopLevelPropertyNaming` | rename to `SCREAMING_SNAKE_CASE` and update every use (`grep`) |
 | `MatchingDeclarationName` | rename the file after its single top-level declaration |
 | `DocumentationOverPrivateProperty` | give the property a name that explains it and drop the comment |
 | `ForbiddenComment` | remove the `FIXME:` or `STOPSHIP:` marker; do the work, or list it in your summary |
@@ -109,7 +109,8 @@ palette, `DataStore.kt`) stay as they are; add none.
 
 ## 6. Loop
 
-Run, fix, run again until `./gradlew detekt` is clean. If one finding survives two different
+Fix every finding from the last run in one batch, then run `./gradlew detekt` once; repeat only for what is
+left, until it is clean. If one finding survives two different
 fixes, reread the rule's message and the line; if it still resists, report it with the reason in
 your final message. The gate stays red until it is fixed; silencing it is not an option.
 

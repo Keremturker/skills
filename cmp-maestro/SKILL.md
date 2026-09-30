@@ -170,7 +170,7 @@ For a quick look at a screen on a device when no permanent flow is needed.
 ## Done when
 
 - Every `id:` in the flow, except the pause id, equals a constant in a `*TestTags` object (check
-  each with Grep). The pause id matches no tag.
+  each with `grep`). The pause id matches no tag.
 - `testTagsAsResourceId` is on at the UI root and in every dialog the flow opens.
 - `appId` matches `AppConfig.applicationId`.
 - The flow starts with `launchApp` and `clearState: true`, visits every screen, has no
@@ -183,7 +183,7 @@ For a quick look at a screen on a device when no permanent flow is needed.
 - `maestro check-syntax .maestro/walkthrough.yaml` runs here: run it after writing the flow and fix
   the flow until it prints `OK`. `maestro test` and `adb` do not run here (the connected device may
   be the owner's phone); Compass plays the flow on an emulator after the coding step.
-- Verification is static: Grep every `id:` value in the flow against the `*TestTags` objects and
+- Verification is static: `grep` every `id:` value in the flow against the `*TestTags` objects and
   fix any mismatch.
 - You will not see the run, so prefer generous timeouts over tight timing. Only pauses and waits
   for content that may legitimately not arrive are `optional`; a tap stays mandatory, or a broken

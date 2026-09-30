@@ -122,7 +122,7 @@ fun figtreeFamily(): FontFamily = FontFamily(
 
 ## 6. Verify
 
-- Headless run: go through the table and find each value in the code (Grep for the hex value or
+- Headless run: go through the table and find each value in the code (`grep` for the hex value or
   the token). Every row is used, or its absence is listed. Then run the gates (`cmp-verify`). The
   visual comparison happens on the walkthrough video Compass records afterwards.
 - Interactive session: run the app, take a screenshot of each state and compare it with its board
