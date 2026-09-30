@@ -26,7 +26,7 @@ command -v node >/dev/null 2>&1 || { echo "ERROR: node is required for sync-cont
 [ -d "$BACKEND_DIR" ] || { echo "ERROR: backend dir not found: $BACKEND_DIR"; exit 2; }
 [ -f "$BACKEND_DIR/services/contract.js" ] || { echo "ERROR: $BACKEND_DIR/services/contract.js missing"; exit 2; }
 
-SKILL_DIR="$HERE" BACKEND_DIR="$BACKEND_DIR" MODE="$MODE" node <<'NODE'
+DOTENV_CONFIG_QUIET=true SKILL_DIR="$HERE" BACKEND_DIR="$BACKEND_DIR" MODE="$MODE" node <<'NODE'
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -41,7 +41,14 @@ const payloadPath  = path.join(SKILL_DIR, 'reference', 'payload.md');
 const warnings = [];
 
 // The backend's single contract module: facts + version live there, not here.
-const { contractFacts, contractVersion } = require(path.join(BACKEND_DIR, 'services', 'contract.js'));
+let contractFacts, contractVersion;
+try {
+  ({ contractFacts, contractVersion } = require(path.join(BACKEND_DIR, 'services', 'contract.js')));
+  if (typeof contractFacts !== 'function' || typeof contractVersion !== 'function') throw new Error('contractFacts/contractVersion not exported');
+} catch (e) {
+  console.error('ERROR: cannot load services/contract.js from CMP_BACKEND_DIR: ' + e.message);
+  process.exit(2);
+}
 
 // --- Hand-maintained maps (NOT derivable from the backend over HTTP) ---------
 // TR + EN intent keywords → featuresConfig flag. Lowercase substring match.
@@ -188,7 +195,11 @@ ${Object.entries(c.anatomy.coreModules).map(([m, r]) => `- \`${m}\`: ${r.require
 }
 
 // --- Run ---------------------------------------------------------------------
-const fresh = buildContract();
+let fresh;
+try { fresh = buildContract(); } catch (e) {
+  console.error('ERROR: contractFacts()/contractVersion() failed: ' + e.message);
+  process.exit(2);
+}
 warnings.forEach(w => console.error('  WARN: ' + w));
 
 if (MODE === 'check') {
