@@ -24,6 +24,7 @@ implemented by the ViewModel), follow that instead of mixing the two.
 | `@Immutable` | `androidx.compose.runtime.Immutable` |
 | `items(list, key = ...)` in a `LazyColumn` | `androidx.compose.foundation.lazy.items` |
 | `onLoading`, `onSuccess`, `onError`, `buildDefaultFlow` | `<rootPackage>.core.domain.*` |
+| `DataError` | `<rootPackage>.core.domain.DataError` |
 
 The code on this page was compiled for Android and iOS in an app generated from this template,
 with these imports and the small `ErrorState`, `EmptyState` and `RecipeRow` composables filled in.
@@ -35,7 +36,7 @@ with these imports and the small `ErrorState`, `EmptyState` and `RecipeRow` comp
 @Immutable
 internal data class RecipesUiState(
     val isLoading: Boolean = false,
-    val hasError: Boolean = false,
+    val error: DataError? = null,
     val recipes: List<Recipe> = emptyList()
 )
 
@@ -84,11 +85,11 @@ internal class RecipesViewModel(
 
     private fun load() {
         loadJob?.cancel()
-        _uiState.update { it.copy(hasError = false) }
+        _uiState.update { it.copy(error = null) }
         loadJob = getRecipes()
             .onLoading { loading -> _uiState.update { it.copy(isLoading = loading) } }
             .onSuccess { recipes -> _uiState.update { it.copy(recipes = recipes) } }
-            .onError { _uiState.update { it.copy(hasError = true) } }
+            .onError { error -> _uiState.update { it.copy(error = error) } }
             .launchIn(viewModelScope)
     }
 }
@@ -99,7 +100,9 @@ internal class RecipesViewModel(
 it in `viewModelScope` and use `.catch { }` to set the error state.
 
 A screen with arguments takes `private val savedStateHandle: SavedStateHandle` (Koin supplies it,
-no `@Provided`) and reads `savedStateHandle.toRoute<RecipeDetailDestination>().id`.
+no `@Provided`) and reads the argument by its name,
+`checkNotNull(savedStateHandle[RecipeDetailDestination::id.name])` (`toRoute()` works in the app too,
+but fails the JVM test run; `cmp-testing`).
 
 ## Route and Content
 
@@ -123,7 +126,8 @@ private fun RecipesContent(
                 modifier = Modifier.align(Alignment.Center).testTag(RecipesTestTags.LOADING)
             )
 
-            uiState.hasError -> ErrorState(
+            uiState.error != null -> ErrorState(
+                error = uiState.error,
                 onRetry = { onAction(RecipesAction.Retry) },
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -144,7 +148,9 @@ private fun RecipesContent(
 }
 ```
 
-`ErrorState` shows a message and a retry button tagged `RecipesTestTags.RETRY`; `EmptyState`
+`ErrorState` shows the message for its `DataError` (with `core/multilang`, a `StringResourcesUiModel`
+function like the showcase's `errorMessage(error)`) and a retry button tagged
+`RecipesTestTags.RETRY`; `EmptyState`
 shows a message and, if the screen can create items, the action that does. Texts come from
 `LocalStringResources.current` when the project has `core/multilang`, otherwise from
 `stringResource` (`cmp-code-rules`, section 11).
