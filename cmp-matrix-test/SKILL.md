@@ -6,7 +6,8 @@ description: >-
   Run the cmpose.dev generator's release matrix — the smoke gate of the (private)
   cmpose.dev backend (`npm run smoke`). It generates every variant (showcase and the
   blank feature combinations) from one CmpTemplate ref, checks each project, builds
-  Android and iOS, runs detekt and the unit tests (Koin graph check included), launches
+  Android and iOS, runs detekt (the project's config, then compass-kit's) and the unit tests
+  (Koin graph check included), launches
   every variant's RELEASE build on an Android emulator and an iOS simulator, and reports
   PASS/FAIL with screenshots. Use when the
   user says "matris testini koş", "smoke", "run the generator matrix", "şablonu
@@ -37,7 +38,9 @@ step 1 (`$CMP_BACKEND_DIR`, else `~/StudioProjects/ProjectGenerator/cmp/Cmp-wiza
 
 Snapshot (B release): 7 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
 `BlankTheme`, `BlankLang` (these two came with the B release, for the blank shell's Theming and
-Multi-Language layers) and `BlankFull`. A full run has 96 checks, `--build-only` 44. If the table or the final count differs, the backend changed: go
+Multi-Language layers) and `BlankFull`. A full run has 101 checks, `--build-only` 49. On every variant with detekt the smoke runs detekt
+twice: with the project's own config, then with compass-kit's (`detekt (compass-kit rules)`, the
+gate Compass applies). If the table or the final count differs, the backend changed: go
 by the backend and mention the difference in the report.
 
 ## 3. Pick the arguments from the request
@@ -57,6 +60,10 @@ Tell the user the expected duration (full ≈ 30–40 min, `--build-only` ≈ 5�
 
 A full run needs `ffmpeg` (the dark-screenshot check); without it the script stops with a
 `PREREQ:` line. `--build-only` does not need it.
+
+The compass-kit detekt check needs a local clone of this skills repo: `CMP_SKILLS_DIR`, default
+`../../skills` relative to the backend checkout. If `compass-kit/detekt.yml` is missing there,
+the smoke exits 2 with a message before any long work; set `CMP_SKILLS_DIR` and rerun.
 
 ## 4. Run it
 
