@@ -34,7 +34,7 @@ step 1 (`$CMP_BACKEND_DIR`, else `~/StudioProjects/ProjectGenerator/cmp/Cmp-wiza
     B=${CMP_BACKEND_DIR:-$HOME/StudioProjects/ProjectGenerator/cmp/Cmp-wizard-backend}
     node -e "console.table(require('$B/scripts/smoke/variants.js').map(v => ({ name: v.name, type: v.templateType, package: v.packageName, modules: (v.features || []).join(' '), featuresConfig: JSON.stringify(v.featuresConfig || 'showcase defaults') })))"
 
-Snapshot (compass-kit follow-up release, `template-2026.09.30`): 7 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
+Snapshot (project-hygiene release, `template-2026.09.30.2`): 7 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
 `BlankTheme`, `BlankLang` (these two came with the B release, for the blank shell's Theming and
 Multi-Language layers) and `BlankFull`. A full run has 108 checks, `--build-only` 56 (one of them: `release is minified (mapping.txt)`). On every variant with detekt the smoke runs detekt
 twice: with the project's own config, then with compass-kit's (`detekt (compass-kit rules)`, the
