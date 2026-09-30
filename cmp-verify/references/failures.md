@@ -78,6 +78,13 @@ Android one.
 - The daemon dies, the JDK is not found, out of memory: environment, not code. `./gradlew --stop`
   once and retry. `./gradlew build` is never the fix; it needs even more memory.
 - Android packaging fails on file paths after the project folder moved: `./gradlew clean` once.
+- `Daemon JVM criteria`, `requires JVM 21`, or Gradle ending in `Unsupported class file major version`:
+  `JAVA_HOME` is older than 21. Install JDK 21, or let Gradle download it
+  (`gradle/gradle-daemon-jvm.properties`).
+- Release build fails with R8 `Missing class ...`, or only the release build throws
+  `ClassNotFoundException` / `SerializationException`: minify removed a class. Add the lines from
+  `androidApp/build/outputs/mapping/release/missing_rules.txt`, or the narrowest `-keep` rule, to
+  `androidApp/proguard-rules.pro`, with a comment saying why.
 
 ## Gates that are red for other reasons
 

@@ -123,7 +123,7 @@ Only when `core/network` exists. Details: `references/network.md`.
 - Reuse the `HttpClient` from `core/network`'s `NetworkModule`; never build a second client. The
   platform engines stay as the template set them.
 - DTOs are `@Serializable`; the client already ignores unknown keys.
-- The base URL is set once, in `NetworkModule`.
+- The base URL is set in `core/network`'s `ApiConfig.kt` (debug and release; older projects: `NetworkModule`).
 - Network failures become typed errors in `data`.
 - An API that needs a key is never written into source. If no key-free public API fits, use fake
   data and say so in your summary.

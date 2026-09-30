@@ -8,7 +8,8 @@ cannot work without one.
 - `core/network/.../di/NetworkModule.kt` provides one `HttpClient` through Koin. It uses the
   platform engine from `getPlatformEngine()` (`expect`/`actual`: Android engine, Darwin on iOS),
   `expectSuccess = true` (a status outside 2xx throws), a request timeout, JSON with
-  `ignoreUnknownKeys = true`, and `defaultRequest { url(...) }` for the base URL. Leave the client
+  `ignoreUnknownKeys = true`, and `defaultRequest { url(ApiConfig.baseUrl(environment)) }`: the base URL comes from
+  `core/network/.../ApiConfig.kt`. Leave the client
   configuration as it is.
 - `BaseRepository.request<T> { httpClient.get(...) }` returns `RestResult<T>`: `Success(body)`, or
   `Error(error)` whose `DataError` (`core/domain`) names the reason: `Network` (no connection,
@@ -19,8 +20,10 @@ cannot work without one.
 
 ## Base URL
 
-- Set once, in `NetworkModule`: `defaultRequest { url("https://api.example.com/v1/") }`. A blank
-  project may have it empty; fill it in.
+- Set in `core/network/.../ApiConfig.kt`: `DEBUG_BASE_URL` (debug builds) and `RELEASE_BASE_URL` (release
+  builds), for example `"https://api.example.com/v1/"`. `NetworkModule` picks one through `BuildEnvironment`
+  (`core/domain`), which the app's entry points pass to `initKoin(isDebug = …)`. A blank project may have both
+  empty; fill them in. Older projects (no `ApiConfig.kt`) set it in `NetworkModule`'s `defaultRequest { url(...) }`.
 - Keep the trailing `/` and write request paths without a leading one: `httpClient.get("recipes")`.
   A leading `/` replaces the base path (`/recipes` would drop `/v1`).
 - A second host gets an absolute URL in that request, not a second client.

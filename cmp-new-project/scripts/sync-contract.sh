@@ -154,8 +154,7 @@ function buildContract() {
       iosVersionMin: CFG.iosVersionMin,
       iosVersionMax: CFG.iosVersionMax,
       maxModules: CFG.maxModules,
-      targetSdk: CFG.targetSdk,
-      compileSdk: CFG.compileSdk,
+      sdkNote: 'targetSdk and compileSdk come from the template: GET {apiBase}/api/versions',
       rateLimitMax: CFG.rateLimitMaxRequests,
       rateLimitWindowMinutes: Math.round(CFG.rateLimitWindowMs / 60000),
       maxBodyLimit

@@ -36,7 +36,7 @@ step 1 (`$CMP_BACKEND_DIR`, else `~/StudioProjects/ProjectGenerator/cmp/Cmp-wiza
 
 Snapshot (compass-kit follow-up release, `template-2026.09.30`): 7 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
 `BlankTheme`, `BlankLang` (these two came with the B release, for the blank shell's Theming and
-Multi-Language layers) and `BlankFull`. A full run has 101 checks, `--build-only` 49. On every variant with detekt the smoke runs detekt
+Multi-Language layers) and `BlankFull`. A full run has 108 checks, `--build-only` 56 (one of them: `release is minified (mapping.txt)`). On every variant with detekt the smoke runs detekt
 twice: with the project's own config, then with compass-kit's (`detekt (compass-kit rules)`, the
 gate Compass applies). If the table or the final count differs, the backend changed: go
 by the backend and mention the difference in the report.

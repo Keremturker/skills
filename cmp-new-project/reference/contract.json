@@ -1,7 +1,7 @@
 {
   "_generated": {
     "by": "scripts/sync-contract.sh",
-    "date": "2026-09-29"
+    "date": "2026-09-30"
   },
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
@@ -17,8 +17,7 @@
     "iosVersionMin": "15.0",
     "iosVersionMax": "26.2",
     "maxModules": 3,
-    "targetSdk": "36",
-    "compileSdk": "36",
+    "sdkNote": "targetSdk and compileSdk come from the template: GET {apiBase}/api/versions",
     "rateLimitMax": 5,
     "rateLimitWindowMinutes": 15,
     "maxBodyLimit": "500kb"
