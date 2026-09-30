@@ -19,7 +19,11 @@ fi
 open -a Simulator || true
 
 JH="$(/usr/libexec/java_home -v21 2>/dev/null || true)"; [ -z "$JH" ] && JH="${JAVA_HOME:-}"
-JV="$("$JH/bin/java" -version 2>&1 | sed -nE '1s/.*version "([0-9]+).*/\1/p')"
+if [ -z "$JH" ]; then
+  echo "SKIP: JDK 21 not found (the iOS build needs it for the Kotlin framework). Install JDK 21 and re-run."
+  exit 1
+fi
+JV="$("$JH/bin/java" -version 2>&1 | sed -nE '1s/.*version "([0-9]+).*/\1/p' || true)"
 if [ -z "$JV" ] || [ "$JV" -lt 21 ]; then
   echo "SKIP: JAVA_HOME=$JH is JDK ${JV:-unknown}; the iOS build (Kotlin framework) needs JDK 21 or newer."
   exit 1

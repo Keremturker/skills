@@ -14,7 +14,7 @@ if [ -z "$JH" ]; then
   echo "SKIP: JDK 21 not found (need it for the AGP 9 build). Install JDK 21 and re-run."
   exit 1
 fi
-JV="$("$JH/bin/java" -version 2>&1 | sed -nE '1s/.*version "([0-9]+).*/\1/p')"
+JV="$("$JH/bin/java" -version 2>&1 | sed -nE '1s/.*version "([0-9]+).*/\1/p' || true)"
 if [ -z "$JV" ] || [ "$JV" -lt 21 ]; then
   echo "SKIP: JAVA_HOME=$JH is JDK ${JV:-unknown}; the build needs JDK 21 or newer. Install JDK 21 and re-run."
   exit 1
