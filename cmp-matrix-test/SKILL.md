@@ -36,7 +36,7 @@ step 1 (`$CMP_BACKEND_DIR`, else `~/StudioProjects/ProjectGenerator/cmp/Cmp-wiza
     B=${CMP_BACKEND_DIR:-$HOME/StudioProjects/ProjectGenerator/cmp/Cmp-wizard-backend}
     node -e "console.table(require('$B/scripts/smoke/variants.js').map(v => ({ name: v.name, type: v.templateType, package: v.packageName, modules: (v.features || []).join(' '), featuresConfig: JSON.stringify(v.featuresConfig || 'showcase defaults') })))"
 
-Snapshot (B release): 7 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
+Snapshot (compass-kit follow-up release, `template-2026.09.30`): 7 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
 `BlankTheme`, `BlankLang` (these two came with the B release, for the blank shell's Theming and
 Multi-Language layers) and `BlankFull`. A full run has 101 checks, `--build-only` 49. On every variant with detekt the smoke runs detekt
 twice: with the project's own config, then with compass-kit's (`detekt (compass-kit rules)`, the
@@ -52,6 +52,9 @@ by the backend and mention the difference in the report.
 - A ref older than the B release (no `blank/layers/` in it) fails `generated` for every blank
   variant by design (HTTP 500, "template older than the B release"); those variants run no further
   checks. Only the showcase variants are meaningful there: report the blank failures as expected.
+- A ref older than `template-2026.09.30` fails the five "detekt (compass-kit rules)" rows by
+  design: its sources predate the compass-kit formatting. Report those as expected, not as
+  product failures.
 - A template directory (e.g. the upstream checkout) → `--dir <path>`.
 - "quick", "sadece build", "hızlı" → add `--build-only` (skips the emulator/simulator runs).
 - Nothing given → no arguments: the backend's pinned template, full run.

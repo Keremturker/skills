@@ -83,11 +83,14 @@ What this configuration expects, so new code does not add findings:
 | `UnusedParameter` | remove the parameter and update the callers |
 | `UnusedPrivateFunction`, `UnusedPrivateProperty`, `UnusedImport` | delete, unless generated code uses it (`cmp-code-rules`, section 15) |
 
-- Measured example from template code: since `template-2026.09.30` the template names the
-  constant `DATA_STORE_FILE_NAME` and passes compass-kit detekt clean. In older projects
-  `internal const val dataStoreFileName` in `core/database` is reported as `[PropertyName]` (the
-  ktlint wrapper's rule; the file already suppresses detekt's own `TopLevelPropertyNaming`) and
-  becomes `DATA_STORE_FILE_NAME`. Renaming changes no behaviour; the value stays.
+- Projects generated from `template-2026.09.30` on pass compass-kit detekt clean for any
+  package name. One known exception: a feature module name of about 18+ characters makes the
+  generated `<Name>ScreenRoute(viewModel: <Name>ViewModel = koinViewModel())` signature exceed
+  `FunctionSignature`'s 100-column limit (one finding; wrap the parameters one per line).
+- Older projects: `internal const val dataStoreFileName` in `core/database` is reported as
+  `[PropertyName]` (the ktlint wrapper's rule; the file already suppresses detekt's own
+  `TopLevelPropertyNaming`) and becomes `DATA_STORE_FILE_NAME`. Renaming changes no behaviour;
+  the value stays.
 - A composable too long to read: extract sub-composables, even though `LongMethod` allows it.
 - Fix the finding and nothing around it. No unrelated refactoring on the way.
 - After a batch of manual fixes run the Android gate: a rename that missed a use shows there.
