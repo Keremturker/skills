@@ -84,9 +84,7 @@ What this configuration expects, so new code does not add findings:
 | `UnusedPrivateFunction`, `UnusedPrivateProperty`, `UnusedImport` | delete, unless generated code uses it (`cmp-code-rules`, section 15) |
 
 - Projects generated from `template-2026.09.30` on pass compass-kit detekt clean for any
-  package name. One known exception: a feature module name of about 18+ characters makes the
-  generated `<Name>ScreenRoute(viewModel: <Name>ViewModel = koinViewModel())` signature exceed
-  `FunctionSignature`'s 100-column limit (one finding; wrap the parameters one per line).
+  package name and any valid module name.
 - Older projects: `internal const val dataStoreFileName` in `core/database` is reported as
   `[PropertyName]` (the ktlint wrapper's rule; the file already suppresses detekt's own
   `TopLevelPropertyNaming`) and becomes `DATA_STORE_FILE_NAME`. Renaming changes no behaviour;

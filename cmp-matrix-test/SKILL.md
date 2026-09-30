@@ -4,15 +4,13 @@ model: sonnet
 effort: medium
 description: >-
   Run the cmpose.dev generator's release matrix — the smoke gate of the (private)
-  cmpose.dev backend (`npm run smoke`). It generates every variant (showcase and the
-  blank feature combinations) from one CmpTemplate ref, checks each project, builds
-  Android and iOS, runs detekt (the project's config, then compass-kit's) and the unit tests
-  (Koin graph check included), launches
-  every variant's RELEASE build on an Android emulator and an iOS simulator, and reports
-  PASS/FAIL with screenshots. Use when the
-  user says "matris testini koş", "smoke", "run the generator matrix", "şablonu
-  yayınlamadan önce doğrula", "release'leri emülatörde dene", or before tagging a
-  template or deploying the backend.
+  cmpose.dev backend (`npm run smoke`). It generates every variant (showcase and the blank
+  feature combinations) from one CmpTemplate ref, checks each project, builds Android and
+  iOS, runs detekt (the project's config, then compass-kit's) and the unit tests (Koin
+  graph check included), launches every variant's RELEASE build on an Android emulator and
+  an iOS simulator, and reports PASS/FAIL with screenshots. Use when the user says "matris
+  testini koş", "smoke", "run the generator matrix", "şablonu yayınlamadan önce doğrula",
+  "release'leri emülatörde dene", or before tagging a template or deploying the backend.
 ---
 
 # cmp-matrix-test
