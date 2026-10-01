@@ -181,28 +181,20 @@
       "statik analiz"
     ],
     "purchases": [
-      "purchases",
-      "in-app purchase",
       "revenuecat",
+      "in-app purchase",
+      "in app purchase",
       "paywall",
-      "subscription",
-      "premium",
-      "monetization",
-      "monetisation",
-      "satın alma",
-      "abonelik",
-      "para kazanma"
+      "uygulama içi satın alma",
+      "abonelik ekranı"
     ],
     "ads": [
       "admob",
-      "advert",
       "banner ad",
       "interstitial",
       "rewarded ad",
-      "monetization",
-      "monetisation",
-      "reklam",
-      "para kazanma"
+      "reklam göster",
+      "reklam ekle"
     ]
   },
   "templateKeywords": {

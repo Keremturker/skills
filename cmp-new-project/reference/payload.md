@@ -69,11 +69,13 @@ Kotlin hard keywords (`kotlinHardKeywords`): `as`, `break`, `class`, `continue`,
 
 ## Monetization (`purchases`, `ads`)
 - `purchases` → `core/purchases` (RevenueCat KMP) + a paywall screen in `feature/monetization`.
-  The project ships with a RevenueCat **Test Store** API key: replace it with your own key before
-  you ship to a store.
+  The project ships with a RevenueCat **Test Store** API key: replace it with your own platform keys
+  before you ship to a store. A **release** build that still has the Test Store key keeps purchases
+  disabled (the paywall shows a message instead of offerings).
 - `ads` → `core/ads` (AdMob banner, interstitial and rewarded, with Google's test ad unit IDs) +
   an ads demo screen in `feature/monetization`. UMP consent (and ATT on iOS) is requested on the
-  first visit to the ads screen, not at app launch; a real app should ask at launch.
+  first visit to the ads screen, not at app launch; a real app should ask at launch. The EEA consent
+  debug geography is applied in debug builds only.
 - Either flag adds `feature/monetization`; `monetization` is therefore a reserved module name.
 
 ## blank vs showcase

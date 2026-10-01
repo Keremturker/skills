@@ -59,9 +59,13 @@ const keywordMap = {
   multiLang:        ['multi-language', 'multilanguage', 'multi language', 'i18n', 'l10n', 'localization', 'localisation', 'çoklu dil', 'yerelleştirme', 'dil desteği'],
   dataStore:        ['datastore', 'data store', 'database', 'db', 'persistence', 'local storage', 'veritabanı', 'yerel depolama', 'saklama'],
   detekt:           ['detekt', 'static analysis', 'lint', 'kod analizi', 'statik analiz'],
-  purchases:        ['purchases', 'in-app purchase', 'revenuecat', 'paywall', 'subscription', 'premium', 'monetization', 'monetisation', 'satın alma', 'abonelik', 'para kazanma'],
-  // No bare 'ads': substring match would fire on 'downloads', 'threads', 'uploads'.
-  ads:              ['admob', 'advert', 'banner ad', 'interstitial', 'rewarded ad', 'monetization', 'monetisation', 'reklam', 'para kazanma']
+  // purchases/ads: explicit monetization intent ONLY. Naming a featuresConfig key switches the
+  // template to blank, so ordinary app descriptions must not match: no 'premium', 'subscription',
+  // 'purchases', 'satın alma', 'abonelik', 'monetization' (a "subscription tracker" or "an app that
+  // tracks purchases" is not a paywall request). No bare 'ads' / 'advert' / 'reklam' either:
+  // substrings of 'downloads', 'threads', 'advertise', 'reklamasyon'.
+  purchases:        ['revenuecat', 'in-app purchase', 'in app purchase', 'paywall', 'uygulama içi satın alma', 'abonelik ekranı'],
+  ads:              ['admob', 'banner ad', 'interstitial', 'rewarded ad', 'reklam göster', 'reklam ekle']
 };
 // Words that mean "give me the full example app".
 const templateKeywords = {
@@ -181,11 +185,13 @@ Kotlin hard keywords (\`kotlinHardKeywords\`): ${c.kotlinHardKeywords.map(k => '
 
 ## Monetization (\`purchases\`, \`ads\`)
 - \`purchases\` → \`core/purchases\` (RevenueCat KMP) + a paywall screen in \`feature/monetization\`.
-  The project ships with a RevenueCat **Test Store** API key: replace it with your own key before
-  you ship to a store.
+  The project ships with a RevenueCat **Test Store** API key: replace it with your own platform keys
+  before you ship to a store. A **release** build that still has the Test Store key keeps purchases
+  disabled (the paywall shows a message instead of offerings).
 - \`ads\` → \`core/ads\` (AdMob banner, interstitial and rewarded, with Google's test ad unit IDs) +
   an ads demo screen in \`feature/monetization\`. UMP consent (and ATT on iOS) is requested on the
-  first visit to the ads screen, not at app launch; a real app should ask at launch.
+  first visit to the ads screen, not at app launch; a real app should ask at launch. The EEA consent
+  debug geography is applied in debug builds only.
 - Either flag adds \`feature/monetization\`; \`monetization\` is therefore a reserved module name.
 
 ## blank vs showcase

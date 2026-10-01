@@ -64,6 +64,11 @@ there if needed, or overrides them up front in their request.
   request says `blank` but names no features, use blank-minimal (all
   `featuresConfig` false, `features: []`). Apply dependency rules
   (`networkInspector ⇒ network`, `theming || multiLang ⇒ dataStore`).
+  **Turn on `purchases` / `ads` only when the user explicitly asks for in-app
+  purchases / a paywall (RevenueCat) or for ads (AdMob).** Never infer them from
+  words like "premium", "subscription", "purchases" or "satın alma" alone (a
+  "premium-feeling recipe app" or a "subscription tracker" is not a paywall
+  request); if unsure, leave them off and ask on the confirmation screen (step 3).
   `purchases` (RevenueCat paywall) and `ads` (AdMob banner/interstitial/rewarded)
   are independent; with both on, premium hides the ads. Either one adds
   `feature/monetization`, so `monetization` is a reserved module name (see
@@ -150,10 +155,12 @@ Builds are long → background them and report results as they finish; never blo
 Summarize: the absolute project path, the modules included (the anatomy), how to
 run (Android Studio Run / iOS `iosApp` scheme), and the guide
 `https://cmpose.dev/guide.html`. If the project has `core/purchases`, say it ships
-with a RevenueCat Test Store key that must be replaced with the user's own key
-before shipping; if it has `core/ads`, say it uses Google's test ad unit IDs and asks
-for UMP/ATT consent on the first visit to the ads screen (a real app should ask at
-launch). Offer to persist any changed preferences
+with a RevenueCat Test Store key that must be replaced with the user's own platform
+keys before shipping (a release build that still has the Test Store key keeps
+purchases disabled and the paywall shows a message); if it has `core/ads`, say it
+uses Google's test ad unit IDs and asks for UMP/ATT consent on the first visit to the
+ads screen (a real app should ask at launch; the EEA consent debug geography is
+debug-only). Offer to persist any changed preferences
 (`packagePrefix`, `outputDir`, `minSdk`, `iosVersion`, `ide`, `openIde`,
 `autoBuildAndroid`, `autoRunIos`) back to `defaults.json`.
 
