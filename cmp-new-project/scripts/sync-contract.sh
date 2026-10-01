@@ -58,7 +58,10 @@ const keywordMap = {
   theming:          ['theming', 'theme', 'dark mode', 'light mode', 'material', 'tema', 'karanlık mod', 'koyu tema'],
   multiLang:        ['multi-language', 'multilanguage', 'multi language', 'i18n', 'l10n', 'localization', 'localisation', 'çoklu dil', 'yerelleştirme', 'dil desteği'],
   dataStore:        ['datastore', 'data store', 'database', 'db', 'persistence', 'local storage', 'veritabanı', 'yerel depolama', 'saklama'],
-  detekt:           ['detekt', 'static analysis', 'lint', 'kod analizi', 'statik analiz']
+  detekt:           ['detekt', 'static analysis', 'lint', 'kod analizi', 'statik analiz'],
+  purchases:        ['purchases', 'in-app purchase', 'revenuecat', 'paywall', 'subscription', 'premium', 'monetization', 'monetisation', 'satın alma', 'abonelik', 'para kazanma'],
+  // No bare 'ads': substring match would fire on 'downloads', 'threads', 'uploads'.
+  ads:              ['admob', 'advert', 'banner ad', 'interstitial', 'rewarded ad', 'monetization', 'monetisation', 'reklam', 'para kazanma']
 };
 // Words that mean "give me the full example app".
 const templateKeywords = {
@@ -146,7 +149,9 @@ Endpoint resolution: ${c.endpointResolution}.
     "multiLang": true,
     "dataStore": true,               // auto-true if theming || multiLang
     "detekt": true,
-    "detektYamlContent": null        // optional custom detekt.yml as a string
+    "detektYamlContent": null,       // optional custom detekt.yml as a string
+    "purchases": true,               // RevenueCat paywall; ships a Test Store key — replace it before you ship
+    "ads": true                      // AdMob banner/interstitial/rewarded (Google test IDs) + UMP/ATT consent
   },
   "features": ["profile"]            // custom modules · each ${R.moduleName} · ≤${X.moduleName} · count ≤ maxModules (${L.maxModules})
 }
@@ -172,6 +177,16 @@ Kotlin hard keywords (\`kotlinHardKeywords\`): ${c.kotlinHardKeywords.map(k => '
 ## Feature dependencies (enforce BEFORE sending)
 - \`networkInspector: true\` ⇒ set \`network: true\`.
 - \`theming: true\` or \`multiLang: true\` ⇒ set \`dataStore: true\`.
+- \`purchases\` and \`ads\` are independent. With both on, an active premium entitlement hides the ads.
+
+## Monetization (\`purchases\`, \`ads\`)
+- \`purchases\` → \`core/purchases\` (RevenueCat KMP) + a paywall screen in \`feature/monetization\`.
+  The project ships with a RevenueCat **Test Store** API key: replace it with your own key before
+  you ship to a store.
+- \`ads\` → \`core/ads\` (AdMob banner, interstitial and rewarded, with Google's test ad unit IDs) +
+  an ads demo screen in \`feature/monetization\`. UMP consent (and ATT on iOS) is requested on the
+  first visit to the ads screen, not at app launch; a real app should ask at launch.
+- Either flag adds \`feature/monetization\`; \`monetization\` is therefore a reserved module name.
 
 ## blank vs showcase
 - **blank**: \`featuresConfig\` reflects the user's choices; \`features\` = custom modules
@@ -188,6 +203,7 @@ ${Object.entries(c.messages).map(([k, v]) => `- \`${k}\`: ${v}`).join('\n')}
 ## Anatomy (which modules appear)
 - Always: ${c.anatomy.always.join(', ')} — ${c.anatomy.alwaysNote}
 ${Object.entries(c.anatomy.coreModules).map(([m, r]) => `- \`${m}\`: ${r.requires ? 'if ' + r.requires.join(' && ') : 'if ' + r.requiresAny.join(' || ')} (${r.note})`).join('\n')}
+${Object.entries(c.anatomy.featureModules || {}).map(([m, r]) => `- \`${m}\`: ${r.requires ? 'if ' + r.requires.join(' && ') : 'if ' + r.requiresAny.join(' || ')} (${r.note})`).join('\n')}
 - \`${c.anatomy.detektDir.path}\`: if ${c.anatomy.detektDir.requires.join(' && ')}
 - showcase adds: ${c.anatomy.showcaseFeatures.join(', ')}
 - each custom module → \`${c.anatomy.customFeaturePath}\` with layers: ${c.anatomy.customFeatureLayers.join(', ')}

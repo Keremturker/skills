@@ -43,7 +43,7 @@ Invoke the skill and answer four prompts (asked one at a time):
 Everything else uses smart defaults (shown on the confirmation screen, changeable
 there or in your request):
 
-- **Template** → `showcase` (full example app: home + onboarding + all modules)
+- **Template** → `showcase` (full example app: home + onboarding + monetization + all modules)
 - **Min SDK** → `24`   ·   **iOS** → `15.0`
 - **Features / custom modules** → applied **only** if you mention them in your request
 

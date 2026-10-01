@@ -1,9 +1,9 @@
 {
   "_generated": {
     "by": "scripts/sync-contract.sh",
-    "date": "2026-09-30"
+    "date": "2026-10-01"
   },
-  "contractVersion": "2acd325d0f04",
+  "contractVersion": "3068cfee845c",
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
     "generate": "/api/generate",
@@ -69,7 +69,8 @@
     "while"
   ],
   "reservedModuleNames": [
-    "build"
+    "build",
+    "monetization"
   ],
   "reservedPackagePrefix": "com.kturker.multiplatform",
   "messages": {
@@ -82,7 +83,7 @@
     "appNameInvalid": "App Name must be 1-30 characters using only letters, numbers, spaces and . _ ' - (no leading or trailing spaces)",
     "urlInvalid": "Invalid Base URL. Please enter a valid http(s) URL of at most 100 characters without spaces, quotes, backslashes or $ (e.g., https://api.example.com)",
     "maxModulesReached": "Maximum 3 feature modules allowed",
-    "moduleNameInvalid": "Module name must start with a letter, contain only lowercase letters and numbers (a-z, 0-9), and not be a Kotlin keyword (e.g., in, is, object) or the reserved name build",
+    "moduleNameInvalid": "Module name must start with a letter, contain only lowercase letters and numbers (a-z, 0-9), and not be a Kotlin keyword (e.g., in, is, object) or one of the reserved names (build, monetization)",
     "moduleNameTooLong": "Module name must be at most 20 characters",
     "moduleNameDuplicate": "Each module name can be used only once",
     "minSdkInvalid": "Min SDK must be a number between 24 and 36",
@@ -100,7 +101,9 @@
     "multiLang",
     "dataStore",
     "detekt",
-    "detektYamlContent"
+    "detektYamlContent",
+    "purchases",
+    "ads"
   ],
   "dependencyRules": {
     "alwaysOn": [
@@ -176,6 +179,30 @@
       "lint",
       "kod analizi",
       "statik analiz"
+    ],
+    "purchases": [
+      "purchases",
+      "in-app purchase",
+      "revenuecat",
+      "paywall",
+      "subscription",
+      "premium",
+      "monetization",
+      "monetisation",
+      "satın alma",
+      "abonelik",
+      "para kazanma"
+    ],
+    "ads": [
+      "admob",
+      "advert",
+      "banner ad",
+      "interstitial",
+      "rewarded ad",
+      "monetization",
+      "monetisation",
+      "reklam",
+      "para kazanma"
     ]
   },
   "templateKeywords": {
@@ -228,6 +255,27 @@
           "dataStore"
         ],
         "note": "DataStore persistence; with theming also the saved Light/Dark/System choice (DarkModeManager)"
+      },
+      "core/purchases": {
+        "requires": [
+          "purchases"
+        ],
+        "note": "RevenueCat KMP (Test Store key: replace before you ship)"
+      },
+      "core/ads": {
+        "requires": [
+          "ads"
+        ],
+        "note": "AdMob banner/interstitial/rewarded + UMP/ATT consent (test IDs)"
+      }
+    },
+    "featureModules": {
+      "feature/monetization": {
+        "requiresAny": [
+          "purchases",
+          "ads"
+        ],
+        "note": "paywall (RevenueCat) and/or ads demo screens"
       }
     },
     "detektDir": {
@@ -238,6 +286,7 @@
     },
     "showcaseFeatures": [
       "feature/home",
+      "feature/monetization",
       "feature/onboarding"
     ],
     "customFeaturePath": "feature/<name>",

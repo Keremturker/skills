@@ -64,6 +64,10 @@ there if needed, or overrides them up front in their request.
   request says `blank` but names no features, use blank-minimal (all
   `featuresConfig` false, `features: []`). Apply dependency rules
   (`networkInspector ⇒ network`, `theming || multiLang ⇒ dataStore`).
+  `purchases` (RevenueCat paywall) and `ads` (AdMob banner/interstitial/rewarded)
+  are independent; with both on, premium hides the ads. Either one adds
+  `feature/monetization`, so `monetization` is a reserved module name (see
+  `reference/payload.md` → *Monetization*).
 
 ## 2. Ask ONLY these four — ONE at a time, in order
 Ask one question → wait → validate (below) → ask the next. **Don't batch. Ask
@@ -96,8 +100,8 @@ Versions: Kotlin 2.x · AGP 9.x · CMP 1.x · Gradle 9.x · JDK 21 (live)
 
 Sepetim/                              (showcase: full example app)
 ├── androidApp/  iosApp/  shared/ (Koin + Navigation)   always
-├── core/  (network, database, designsystem, multilang, …)
-├── feature/home/  feature/onboarding/
+├── core/  (network, database, designsystem, multilang, purchases, ads, …)
+├── feature/home/  feature/monetization/  feature/onboarding/
 └── build-logic/
 ```
 Get a single yes/no before generating.
@@ -145,7 +149,11 @@ Builds are long → background them and report results as they finish; never blo
 ## 7. Report + remember
 Summarize: the absolute project path, the modules included (the anatomy), how to
 run (Android Studio Run / iOS `iosApp` scheme), and the guide
-`https://cmpose.dev/guide.html`. Offer to persist any changed preferences
+`https://cmpose.dev/guide.html`. If the project has `core/purchases`, say it ships
+with a RevenueCat Test Store key that must be replaced with the user's own key
+before shipping; if it has `core/ads`, say it uses Google's test ad unit IDs and asks
+for UMP/ATT consent on the first visit to the ads screen (a real app should ask at
+launch). Offer to persist any changed preferences
 (`packagePrefix`, `outputDir`, `minSdk`, `iosVersion`, `ide`, `openIde`,
 `autoBuildAndroid`, `autoRunIos`) back to `defaults.json`.
 
