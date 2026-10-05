@@ -4,7 +4,7 @@ description: >-
   Offer to hand a self-contained job (analysis, research, review, or a code change in an
   isolated git worktree) to a second Claude Code account configured on this machine, run it
   headless in a side cmux pane, and bring the report back into this session. Use when the
-  user wants to spend the second account's quota, says "şirket hesabına pasla", "bunu diğer
+  user wants to spend the second account's quota, says "şirket hesabına pasla", "ikinci hesaba pasla", "bunu diğer
   hesaba yaptır", "delegate this to the other account", or when you are about to start a
   sizeable, self-contained job and the second account is configured. Never delegates
   without the user's explicit yes.
@@ -18,8 +18,8 @@ Talk to the user in their language.
 
 ## Rules
 
-- **Never delegate without asking.** Offer, then wait for an explicit yes. A no applies to
-  that job for the rest of the session.
+- **Never delegate without asking.** Offer, then wait for an explicit yes. A no means: do not re-offer that same
+  job this session; similar future jobs may still be offered.
 - The second account runs under its own policy. Never add MCP servers, plugin dirs, agents,
   permission-bypass flags or approval hooks to its run, and never try to get around a denial
   it reports — bring blocked commands back to the user instead.
@@ -54,7 +54,7 @@ If it does not qualify, say nothing about delegation and do the job yourself.
 
 Ask one question, e.g. (Turkish user):
 
-> Bu işi şirket hesabına paslayabiliriz — **mod: salt-okur analiz** — kapsam: `core/` modülündeki
+> Bu işi ikinci hesaba paslayabiliriz — **mod: salt-okur analiz** — kapsam: `core/` modülündeki
 > ağ katmanını inceleyip riskleri raporlamak. Yapalım mı?
 
 For write mode say **mod: worktree'de kod değişikliği** and name the repo. Wait for the answer.
@@ -85,7 +85,7 @@ live view next to this session (skip this step if `cmux` is not available or
 `CMUX_SURFACE_ID` is unset):
 
 ```bash
-cmux new-split right --focus false --command "~/.claude/skills/account-delegate/scripts/watch.sh '<JOB_DIR>'; echo; read -n 1 -s -r -p 'Press any key to close'"
+cmux new-split right --focus false --command "~/.claude/skills/account-delegate/scripts/watch.sh '<JOB_DIR>'; printf '\nPress Enter to close'; read _"
 ```
 
 Tell the user in one line that the job is running in the side pane. Do not poll; you are
@@ -106,20 +106,26 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
 - **Blocked or needed commands** (report section, or `permission_denials` in meta): list them
   and ask the user whether you should run them here. Run only the ones they approve.
 - **Write mode:**
-  - If `commit` is null and `commit_failed` is false, there were no changes; say so.
-  - If `commit_failed` is true (e.g. a repo git hook rejected the commit), show the end of
+  - If `commit` is null and `commit_failed` is false, there were no changes: remove the
+    worktree (`git -C <repo> worktree remove <JOB_DIR>/worktree`), delete the branch
+    (`git -C <repo> branch -d delegate/<id>`; it equals HEAD's ancestor) and say so.
+  - If `commit_failed` is true (e.g. a repo git hook rejected the commit), the worktree holds
+    the only copy of the work: do NOT remove it unless the user says so. Show the end of
     `stderr.log` and the worktree's `git status`, and ask how to proceed.
   - Otherwise show `git -C <repo> diff --stat HEAD...delegate/<id>` and ask "birleştireyim mi?".
-    On yes, merge with `git -C <repo> merge --no-ff delegate/<id>`; if the user's working tree
-    has uncommitted changes that would conflict, ask first. On no, leave the branch.
-  - In both cases remove the worktree: `git -C <repo> worktree remove <JOB_DIR>/worktree`.
-    Delete the branch (`git -C <repo> branch -D delegate/<id>`) only after merging or when
-    the user says so.
+    On yes (ask first if the user's working tree has uncommitted changes that could conflict),
+    run `git -C <repo> merge --no-ff --no-edit delegate/<id>`; on conflict run
+    `git -C <repo> merge --abort` and ask the user. After a successful merge remove the
+    worktree and delete the branch with `git branch -d` (never `-D`). On no, leave the branch
+    and remove only the worktree; use `-D` only if the user explicitly says to discard it.
+  - Never use `--force` when removing a worktree; if removal is refused, tell the user.
 - **Failure** (`is_error: true`, non-zero `exit_code`, or empty `result.md`): show the last
   ~20 lines of `watch.sh`-formatted events
   (`jq -R -r -f ~/.claude/skills/account-delegate/scripts/format-events.jq < <JOB_DIR>/events.jsonl | tail -n 20`)
   and the end of `stderr.log`, and offer to do the job in this session instead.
   `subtype: error_max_turns` means it hit the turn limit (`DELEGATE_MAX_TURNS`, default 40).
+  In write mode a failed job can leave branch `delegate/<id>` (possibly with a commit) and
+  `<JOB_DIR>/worktree`: tell the user what was left and ask before removing anything.
 
 Job dirs live in `DELEGATE_CACHE_DIR` (default `~/.cache/claude-delegate`) and are kept for
 reference; nothing cleans them automatically.

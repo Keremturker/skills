@@ -4,8 +4,8 @@ Lets your main Claude Code session offer to hand a self-contained job to a **sec
 Code account** on the same machine — for example to use that account's quota. The second
 account runs headless (`claude -p`) under its own settings and policy, you watch it live in
 a side cmux pane, and the report comes back into your main session. Nothing is delegated
-without your explicit yes, and nothing the second account asks permission for is
-auto-approved.
+without your explicit yes. Edits (write mode, `acceptEdits`) and the read tools (ro mode)
+are pre-allowed; permission prompts for anything else are never auto-approved.
 
 Two modes:
 - **ro** — read-only analysis/research/review (Read, Grep, Glob, WebSearch, WebFetch).
@@ -49,8 +49,8 @@ its own login.
 stderr, no job dir created).
 
 Each job dir holds `brief.md`, `events.jsonl` (stream-json), `stderr.log`, `result.md`
-(final report) and `meta.json` (mode, exit code, error flag, turns, cost, denials, branch,
-commit).
+(final report), `meta.json` (mode, exit code, error flag, turns, cost, denials, branch,
+commit) and, in write mode, `worktree/`.
 
 ## Tests
 
