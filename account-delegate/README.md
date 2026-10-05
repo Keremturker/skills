@@ -21,6 +21,24 @@ Two modes:
   explained in `stderr.log`) and the worktree is left as is. Clean/smudge filters your own git
   config defines (e.g. git-lfs) still run on the agent's files, as in any `git add`.
 
+## Plan mode
+
+`delegate.sh --mode write --plan <plan dir> --cwd <dir> --brief <file> [--base <ref>] [--title <t>] [--resume <session id>]`
+
+Runs the tasks of one implementation plan in a single worktree, `<plan dir>/worktree`, on branch
+`delegate/<plan id>` (`<plan id>` = basename of `<plan dir>`, `[A-Za-z0-9._-]`). The first call
+needs `--base` and writes `<plan dir>/plan.json` (base, base commit, cwd, branch, and the pinned
+git dir and `.git` file); later calls refuse `--base` and must use the same `--cwd`. Every call
+gets `<plan dir>/jobs/<n>/` (a normal job dir) and adds at most one commit,
+`delegate(<plan id>): <title>`. Before a later job starts, the script checks that the `.git`
+file is unchanged, that the worktree is on the plan branch and that it has no uncommitted
+changes; otherwise it exits 2. `--resume` continues the second account's session of an earlier
+job of the same plan (any other session id: exit 2). `<plan dir>/lock` allows one job at a time;
+a lock whose process is gone is taken over. The plan worktree is never removed by the script.
+`meta.json` gains `plan_id`, `plan_dir`, `job_n`, `title`, `resumed_from` and `parent_commit`
+(the branch tip before the job), null outside plan mode. `--plan` is write mode only and cannot
+be combined with `--id`; `--title` and `--resume` need `--plan`.
+
 ## Base ref
 
 `delegate.sh --mode ro|write --cwd <dir> --brief <file> --base <ref> [--id <id>]`. `--base`
@@ -85,6 +103,7 @@ without meta.json" if the process in `pid` dies first (e.g. it was SIGKILLed).
 bash account-delegate/tests/test_watch.sh
 bash account-delegate/tests/test_delegate.sh
 bash account-delegate/tests/test_delegate_write.sh
+bash account-delegate/tests/test_delegate_plan.sh
 ```
 
 They use a fake `claude` and never touch a real account.

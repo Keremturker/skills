@@ -5,8 +5,8 @@ description: >-
   isolated git worktree) to a second Claude Code account configured on this machine, run it
   headless in a side cmux pane, and bring the report back into this session. Use when the
   user wants to spend the second account's quota, says "şirket hesabına pasla", "ikinci hesaba pasla", "bunu diğer
-  hesaba yaptır", "delegate this to the other account", or when you are about to start a
-  sizeable, self-contained job and the second account is configured. Never delegates
+  hesaba yaptır", "delegate this to the other account", "planı şirket hesabıyla yürüt", "execute this plan on the other account", or when you are about to start a
+  sizeable, self-contained job and the second account is configured. Also offers to execute a written implementation plan task by task on the second account while this session reviews every task. Never delegates
   without the user's explicit yes.
 ---
 
@@ -186,3 +186,89 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
 
 Job dirs live in `DELEGATE_CACHE_DIR` (default `~/.cache/claude-delegate`) and are kept for
 reference; nothing cleans them automatically.
+
+## 6. Plan mode (execute an implementation plan)
+
+The second account writes the code task by task; this session reviews every task itself (no
+review subagents: that keeps this account's quota low).
+
+### When to offer
+
+An implementation plan is written (e.g. by `superpowers:writing-plans`), the second account is
+configured, the repo is a git repo, and the tasks meet section 1's criteria. This replaces the
+usual execution-method question: ask once, e.g.
+
+> Bu planı şirket hesabıyla yürüteyim mi? — kod şirket hesabında, kontrol bende; `develop`
+> dalından, 5 görev, görev başına en fazla 3 düzeltme turu. Commit'lenmemiş değişiklikler işe
+> görünmez.
+
+Yes covers every task and fix round of this plan. No → `superpowers:subagent-driven-development`.
+
+### Setup
+
+`PLAN_DIR="${DELEGATE_CACHE_DIR:-$HOME/.cache/claude-delegate}/plans/<YYYYMMDD-HHMMSS>-<slug>"`
+(slug: `[a-z0-9-]`). Create `PLAN_DIR/progress.md` yourself (the script never touches it):
+plan file path, base, and one line per task — status (`pending` / `running` / `done` /
+`stopped`), job numbers, session id, fix rounds, cost. Update it after every job.
+
+### Per task
+
+1. **Brief** (scratchpad file, user's language): the task's text copied **verbatim** from the
+   plan (the plan file may not be committed on the base, so never just point at it); short
+   project context (repo, decisions, things not to touch); one line per finished task; "if you
+   cannot run a build or test command, list it under Blocked".
+2. **Run** with `run_in_background: true`, then open the side pane as in section 4:
+
+   ```bash
+   ~/.claude/skills/account-delegate/scripts/delegate.sh --mode write --plan "<PLAN_DIR>" \
+     --cwd "<repo dir>" --brief "<brief file>" --title "Task <n>: <name>" [--base "<base ref>"]
+   ```
+
+   `--base` only for the first job of the plan (it creates `PLAN_DIR/plan.json`, the worktree
+   `PLAN_DIR/worktree` and branch `delegate/<plan id>`, plan id = basename of `PLAN_DIR`); every
+   later job must omit it and pass the same `--cwd`. Exit 2 with no `JOB_DIR=` is a refusal
+   (bad flags, held lock, tampered `.git`, worktree not on the plan branch, uncommitted changes
+   in the plan worktree): show the message, do not retry blindly.
+3. **Review** (this session):
+   - Read `<JOB_DIR>/meta.json`; errors and denials → *Stop and ask* below.
+   - `git -C <PLAN_DIR>/worktree diff --stat <parent_commit>..<commit>`, then read only the
+     relevant hunks (`git -C <PLAN_DIR>/worktree diff <parent_commit>..<commit> -- <paths>`).
+     `commit` null with `commit_failed` false means the job changed nothing.
+   - Spec compliance first (everything the task asked, nothing more), then code quality.
+   - **Safety gate:** if the task's diff touches build, hook, CI or script files
+     (`build.gradle*`, `settings.gradle*`, `gradle/`, `package.json`, `Makefile`, `*.sh`,
+     `.githooks/`, `.husky/`, `.hooks/`, the `core.hooksPath` dir, `.github/workflows/`,
+     `.gitlab-ci.yml`, ...), show those hunks in full and get the user's yes **before** running
+     any build or test there. The plan-level yes does not cover this.
+   - Run the task's test/verification commands inside `<PLAN_DIR>/worktree`.
+4. **Fix round** if anything is wrong: write the findings as a brief and run the same command
+   with `--resume <session_id of this task's last job>` and `--title "Task <n> fix <k>"` (no
+   `--base`). Then review again. At most 3 fix rounds per task.
+5. **Done:** update `progress.md`, tell the user one line (task, rounds, cost), next task.
+
+### Stop and ask
+
+- Still wrong after 3 fix rounds → show the remaining findings; options: you finish it here /
+  one more round with a fresh brief and no `--resume` / stop the plan.
+- `permission_denials` or a "Blocked" section → list the commands, ask which to run here, run
+  only those.
+- Job failure (`is_error`, `error_max_turns`, empty `result.md`) → last ~20 formatted events and
+  the end of `stderr.log`; options: retry / you do the task here / stop the plan.
+- `.git` changed or removed (exit 2 naming `.git`, or `stderr.log` says so) → stop the plan, run
+  no git command inside the worktree, leave cleanup to the user as in section 5.
+- `commit_failed` true → the worktree holds the only copy; touch nothing, show, ask. The next
+  plan job refuses to start until the worktree is clean.
+- Safety gate (above).
+
+### End of plan
+
+Summarise: tasks, total cost, total fix rounds. Then follow section 5's write-mode merge rules
+with `delegate/<plan id>` as the branch, `plan.json.base` as `base`, `plan.json.base_commit` as
+`base_commit` and `<PLAN_DIR>/worktree` as the worktree: `git -C <repo> diff --stat
+<base_commit>...delegate/<plan id>`, hook/CI/build hunks in full, "birleştireyim mi?",
+`--no-ff`, never switch branches, never `-D` or `--force` unprompted.
+
+### Resuming
+
+After an interruption or `/clear`, read `PLAN_DIR/progress.md` and continue from the first task
+that is not `done`. A handoff note names `PLAN_DIR` and `progress.md`.
