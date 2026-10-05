@@ -116,5 +116,32 @@ check "plan dir with spaces: create" test "$CODE" -eq 0
 FAKE_MODE=write FAKE_FILE=f.txt run --mode write --plan "$SPLAN" --cwd "$REPO" --brief "$B"
 check "plan dir with spaces: reuse" bash -c 'test "$1" -eq 0 && test "$(git -C "$2" rev-list --count "$3..delegate/p5")" = 2' _ "$CODE" "$REPO" "$MAIN"
 
+# --- --resume
+FAKE_MODE=write FAKE_FILE=g.txt FAKE_SESSION=sess-g run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B" --title "Task 6"
+check "a job without --resume does not pass --resume" bash -c '! grep -qxF -- --resume "$1"' _ "$FAKE_LOG/args"
+printf 'Fix: rename g.txt contents\n' > "$TMP/fix.md"
+FAKE_MODE=write FAKE_FILE=g2.txt FAKE_SESSION=sess-g run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$TMP/fix.md" --resume sess-g --title "Task 6 fix 1"
+check "resume run exits 0" test "$CODE" -eq 0
+check "claude gets --resume <id>" bash -c 'grep -A1 -xF -- --resume "$1" | tail -n 1 | grep -qx sess-g' _ "$FAKE_LOG/args"
+check "fix brief is the new prompt" cmp -s "$TMP/fix.md" "$FAKE_LOG/stdin"
+check "meta.resumed_from" test "$(meta .resumed_from)" = sess-g
+check "fix round adds a commit" bash -c 'git -C "$1" log -1 --format=%s delegate/p1 | grep -qxF "delegate(p1): Task 6 fix 1"' _ "$REPO"
+
+N_BEFORE="$(njobs "$PLAN")"
+run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B" --resume nope
+check "unknown session exits 2" test "$CODE" -eq 2
+FAKE_MODE=write FAKE_FILE=h.txt FAKE_SESSION=sess-other run --mode write --plan "$SPLAN" --cwd "$REPO" --brief "$B"
+run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B" --resume sess-other
+check "foreign session (another plan) exits 2" test "$CODE" -eq 2
+run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B" --resume -x
+check "--resume starting with a dash exits 2" test "$CODE" -eq 2
+run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B" --resume 'a b'
+check "--resume with a space exits 2" test "$CODE" -eq 2
+check "resume refusals created no job dir" test "$(njobs "$PLAN")" = "$N_BEFORE"
+run --mode write --cwd "$REPO" --brief "$B" --base "$MAIN" --resume sess-g
+check "--resume without --plan exits 2" test "$CODE" -eq 2
+run --mode write --plan "$TMP/plans/p3" --cwd "$REPO" --brief "$B" --base "$MAIN" --resume sess-g
+check "--resume on a new plan exits 2" bash -c 'test "$1" -eq 2 && test ! -e "$2/plan.json"' _ "$CODE" "$TMP/plans/p3"
+
 rm -rf "$TMP"
 exit $fail

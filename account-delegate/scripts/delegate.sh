@@ -70,6 +70,7 @@ else
 fi
 case "$TITLE" in *$'\n'*|*$'\r'*) die "--title must be a single line" ;; esac
 [ "${#TITLE}" -le 200 ] || die "--title is longer than 200 characters"
+case "$RESUME" in -*|*[!A-Za-z0-9_-]*) die "invalid --resume: $RESUME" ;; esac
 
 CONFIG="${DELEGATE_CLAUDE_CONFIG_DIR:-$HOME/.claude-work}"
 [ -d "$CONFIG" ] || die "second account config dir not found: $CONFIG (set DELEGATE_CLAUDE_CONFIG_DIR)"
@@ -124,8 +125,13 @@ if [ -n "$PLAN" ]; then
     [ "$(cgit symbolic-ref -q HEAD)" = "refs/heads/$BRANCH" ] || die "the plan worktree is not on $BRANCH (detached or switched): $WORKTREE"
     PARENT_COMMIT="$(cgit rev-parse -q --verify 'HEAD^{commit}')" || die "cannot read the plan branch tip: $BRANCH"
     [ -z "$(cd "$WORKTREE" && cgit status --porcelain)" ] || die "the plan worktree has uncommitted changes (a failed collection?); resolve them first: $WORKTREE"
-  elif ls -A "$PLAN" | grep -vqx lock; then
-    die "plan dir exists but has no plan.json: $PLAN"
+    if [ -n "$RESUME" ]; then
+      cat "$PLAN"/jobs/*/meta.json 2>/dev/null | jq -r '.session_id // empty' 2>/dev/null | grep -qxF -- "$RESUME" \
+        || die "--resume: session $RESUME does not belong to plan $PLAN_ID"
+    fi
+  else
+    [ -z "$RESUME" ] || die "--resume: plan $PLAN_ID has no jobs yet"
+    ! ls -A "$PLAN" | grep -vqx lock || die "plan dir exists but has no plan.json: $PLAN"
   fi
   N=1; while [ -e "$PLAN/jobs/$N" ]; do N=$((N + 1)); done
   ID="$PLAN_ID-$N"
@@ -239,6 +245,7 @@ case "$MODE" in
     fi
     WORKDIR="$WORKTREE/$PREFIX"
     FLAGS=(--permission-mode acceptEdits)
+    [ -z "$RESUME" ] || FLAGS+=(--resume "$RESUME")
     REPORT="$REPORT Work only inside the current directory tree. Do not commit, push or create branches: your file changes are collected and committed for you after you finish."
     ;;
 esac
