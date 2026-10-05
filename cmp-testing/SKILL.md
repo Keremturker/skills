@@ -218,6 +218,8 @@ fun `a recipe marked as favourite appears in the favourites`() = runTest {
 
 - Same package as the class under test, under `src/commonTest/kotlin/<package path>/`, file
   `<Class>Test.kt`. `internal` classes are visible to their own module's tests.
+- Test names and test comments are always in English, never Turkish (or any other language), even
+  when the request, the plan or the surrounding UI text is Turkish.
 - Backticked names use letters, digits and spaces only. A `,` or `()` fails the iOS test compile
   (measured: `Name contains illegal characters: ","`).
 - Body in three blocks separated by blank lines: given, when, then. No comments needed.
