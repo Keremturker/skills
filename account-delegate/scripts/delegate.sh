@@ -41,6 +41,8 @@ if [ "$MODE" = write ]; then
   TOP="$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null)" || die "write mode needs a git repository: $CWD"
   git -C "$TOP" rev-parse -q --verify HEAD >/dev/null || die "write mode needs at least one commit: $TOP"
   PREFIX="$(git -C "$CWD" rev-parse --show-prefix)"
+  [ -z "$PREFIX" ] || git -C "$TOP" cat-file -e "HEAD:${PREFIX%/}" 2>/dev/null \
+    || die "--cwd is not tracked in HEAD (untracked or ignored directory): $CWD"
 fi
 
 [ -n "$ID" ] || ID="$(date +%Y%m%d-%H%M%S)-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom 2>/dev/null | head -c 4)"
@@ -124,8 +126,10 @@ else
 fi
 
 if [ "$MODE" = write ]; then
-  if git -C "$WORKTREE" add -A >> "$JOB/stderr.log" 2>&1 && ! git -C "$WORKTREE" diff --cached --quiet; then
-    if git -C "$WORKTREE" commit -q -m "delegate: $ID" >> "$JOB/stderr.log" 2>&1; then
+  if ! git -C "$WORKTREE" add -A >> "$JOB/stderr.log" 2>&1; then
+    COMMIT_FAILED=true
+  elif ! git -C "$WORKTREE" diff --cached --quiet; then
+    if git -C "$WORKTREE" -c commit.gpgsign=false commit -q -m "delegate: $ID" >> "$JOB/stderr.log" 2>&1; then
       COMMIT="$(git -C "$WORKTREE" rev-parse HEAD)"
     else
       COMMIT_FAILED=true

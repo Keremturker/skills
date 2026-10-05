@@ -56,5 +56,23 @@ check "no changes: branch still at base" test "$(git -C "$REPO" rev-parse delega
 FAKE_MODE=crash run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w4
 check "crash in write mode exits 1 and writes meta" bash -c 'test "$1" -eq 1 && test -s "$2/meta.json"' _ "$CODE" "$JOB"
 
+mkdir -p "$REPO/untracked-dir"
+run --mode write --cwd "$REPO/untracked-dir" --brief "$TMP/brief.md" --id w5
+check "subdir missing in HEAD exits 2 before creating a job" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/w5"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+
+git -C "$REPO" branch delegate/w6
+FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w6
+check "worktree add failure exits 1" test "$CODE" -eq 1
+check "worktree add failure: meta written, worktree/branch null" bash -c 'jq -e ".worktree == null and .branch == null and .is_error == true" "$1/meta.json" >/dev/null' _ "$JOB"
+check "worktree add failure: result.md mentions worktree" grep -qi worktree "$JOB/result.md"
+
+printf '#!/bin/sh\nexit 1\n' > "$REPO/.git/hooks/pre-commit"; chmod +x "$REPO/.git/hooks/pre-commit"
+FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w7
+check "commit failure: exits 0" test "$CODE" -eq 0
+check "commit failure: meta.commit_failed true" test "$(meta .commit_failed)" = true
+check "commit failure: meta.commit null" test "$(meta .commit)" = null
+check "commit failure: change left in the worktree" test -f "$JOB/worktree/fake.txt"
+rm -f "$REPO/.git/hooks/pre-commit"
+
 rm -rf "$TMP"
 exit $fail
