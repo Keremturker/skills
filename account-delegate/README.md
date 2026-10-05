@@ -104,8 +104,11 @@ mode only if the automatic removal failed (the reason is in `stderr.log`); other
 minimal fallback meta carries `base`, `base_commit` and `worktree` too. If jq cannot build the full `meta.json`, a minimal
 one (`id`, `mode`, `exit_code`, `is_error: true`, ...) is written instead.
 
-`watch.sh <job dir>` exits 0 once `meta.json` appears, and exits 1 with "job process is gone
-without meta.json" if the process in `pid` dies first (e.g. it was SIGKILLed).
+`watch.sh <job dir>` returns once `meta.json` appears: exit 0 if the job finished cleanly (no
+error, no denied tool call, no failed commit), exit 2 if it finished but needs a look. It exits 1
+with "job process is gone without meta.json" if the process in `pid` dies first (e.g. it was
+SIGKILLed). The side pane the skill opens closes itself 5 seconds after exit 0 and otherwise
+waits for Enter.
 
 ## Tests
 
