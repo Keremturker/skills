@@ -34,10 +34,13 @@ step 1 (`$CMP_BACKEND_DIR`):
     B=${CMP_BACKEND_DIR:?set CMP_BACKEND_DIR to your cmpose.dev backend checkout}
     node -e "console.table(require('$B/scripts/smoke/variants.js').map(v => ({ name: v.name, type: v.templateType, package: v.packageName, modules: (v.features || []).join(' '), featuresConfig: JSON.stringify(v.featuresConfig || 'showcase defaults') })))"
 
-Snapshot (monetization release): 9 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
+Snapshot (room release): 9 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
 `BlankTheme`, `BlankLang`, `BlankFull`, `BlankPurchases` and `BlankAds` (the last two came with the
-monetization release, for the in-app purchases and ads flags). A full run has 135 checks,
-`--build-only` 69 (the checks that do not need the emulator/simulator or a release run; one of them: `release is minified (mapping.txt)`); one check asserts that the skill's `contractVersion` (read from `CMP_SKILLS_DIR`, default the sibling skills checkout) equals the backend's. On every variant with detekt the smoke runs detekt
+monetization release, for the in-app purchases and ads flags; Room is on in `BlankFull`, `BlankAds` and
+`BlankPurchases`, which has it alone: no custom module, theming and multi-language off). A full run has
+140 checks, five of them `Room schema unchanged by the build` (both showcases and the three Room variants). The
+`--build-only` count was not re-measured for this release (69 at the monetization release, before Room);
+it holds the checks that do not need the emulator/simulator or a release run, one of them `release is minified (mapping.txt)`; one check asserts that the skill's `contractVersion` (read from `CMP_SKILLS_DIR`, default the sibling skills checkout) equals the backend's. On every variant with detekt the smoke runs detekt
 twice: with the project's own config, then with compass-kit's (`detekt (compass-kit rules)`, the
 gate Compass applies). If the table or the final count differs, the backend changed: go
 by the backend and mention the difference in the report.
