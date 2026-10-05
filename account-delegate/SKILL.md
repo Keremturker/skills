@@ -126,7 +126,11 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
 - **Success** (`is_error: false`): summarise the report for the user. Mention the cost
   (`total_cost_usd`) and turns in one line. In ro mode inside a git repo the worktree is
   removed automatically; if `meta.worktree` is non-null it was left behind (see `stderr.log`):
-  tell the user it was left and where (`worktree remove` without `--force` is theirs to run).
+  tell the user it was left and where. If `stderr.log` says its `.git` was changed or removed,
+  run NO git command in it (its `.git` may point at a git dir whose config runs commands) and
+  tell the user to delete it with plain tools (`rm -rf <JOB_DIR>/worktree`) and then run
+  `git -C <repo> worktree prune`; otherwise `git -C <repo> worktree remove <JOB_DIR>/worktree`
+  (never `--force`) is theirs to run.
 - **Blocked or needed commands** (report section, or `permission_denials` in meta): list them
   and ask the user whether you should run them here. Run only the ones they approve.
 - **Write mode:** delegate.sh committed the changes for the job with git hooks disabled and
