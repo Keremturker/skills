@@ -106,7 +106,7 @@ live view next to this session (skip this step if `cmux` is not available or
 `CMUX_SURFACE_ID` is unset):
 
 ```bash
-cmux new-split right --focus false --command "~/.claude/skills/account-delegate/scripts/watch.sh '<JOB_DIR>'; printf '\nPress Enter to close'; read _"
+cmux new-split right --focus false --command "~/.claude/skills/account-delegate/scripts/watch.sh '<JOB_DIR>' && { printf '\nClosing in 5s'; sleep 5; } || { printf '\nPress Enter to close'; read _; }"
 ```
 
 Tell the user in one line that the job is running in the side pane. Do not poll; you are

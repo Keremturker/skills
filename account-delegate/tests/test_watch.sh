@@ -37,7 +37,7 @@ rm -rf "$JOB"
 JOB="$(mktemp -d)"
 printf '%s' '{"exit_code":143,"is_error":true,"subtype":null,"num_turns":null,"total_cost_usd":null}' > "$JOB/meta.json"
 WOUT="$(perl -e 'alarm 10; exec @ARGV' bash "$SCRIPTS/watch.sh" "$JOB")"; wcode=$?
-check "watch exits when the job died before any events" test "$wcode" -eq 0
+check "watch exits 2 when the job finished with an error" test "$wcode" -eq 2
 check "watch summary handles missing fields" grep -qF 'job finished · exit 143 · error: true' <<<"$WOUT"
 rm -rf "$JOB"
 
@@ -54,5 +54,16 @@ JOB="$(mktemp -d)"
 echo $$ > "$JOB/pid"   # a live pid: keep waiting for meta.json
 WOUT="$(perl -e 'alarm 10; exec @ARGV' bash "$SCRIPTS/watch.sh" "$JOB")"; wcode=$?
 check "watch keeps waiting while the job process is alive" test "$wcode" -eq 0
+rm -rf "$JOB"
+JOB="$(mktemp -d)"
+printf '%s' '{"exit_code":0,"is_error":false,"permission_denials":[{"tool_name":"Bash"}]}' > "$JOB/meta.json"
+perl -e 'alarm 10; exec @ARGV' bash "$SCRIPTS/watch.sh" "$JOB" >/dev/null; wcode=$?
+check "watch exits 2 when a tool call was denied" test "$wcode" -eq 2
+printf '%s' '{"exit_code":0,"is_error":false,"permission_denials":[],"commit_failed":true}' > "$JOB/meta.json"
+perl -e 'alarm 10; exec @ARGV' bash "$SCRIPTS/watch.sh" "$JOB" >/dev/null; wcode=$?
+check "watch exits 2 when the commit failed" test "$wcode" -eq 2
+printf '%s' 'not json' > "$JOB/meta.json"
+perl -e 'alarm 10; exec @ARGV' bash "$SCRIPTS/watch.sh" "$JOB" >/dev/null 2>&1; wcode=$?
+check "watch exits 2 when meta.json is unreadable" test "$wcode" -eq 2
 rm -rf "$JOB"
 exit $fail
