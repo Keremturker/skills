@@ -20,9 +20,11 @@ Talk to the user in their language.
 
 - **Never delegate without asking.** Offer, then wait for an explicit yes. A no means: do not re-offer that same
   job this session; similar future jobs may still be offered.
-- The second account runs under its own policy. Never add MCP servers, plugin dirs, agents,
-  permission-bypass flags or approval hooks to its run, and never try to get around a denial
-  it reports — bring blocked commands back to the user instead.
+- The second account runs under its own policy. Write jobs use its `auto` permission mode
+  (its own classifier approves safe shell commands; `DELEGATE_PERMISSION_MODE=acceptEdits`
+  turns shell commands off again). Never add MCP servers, plugin dirs, agents,
+  permission-bypass flags (`bypassPermissions`, `dontAsk`) or approval hooks to its run, and
+  never try to get around a denial it reports — bring blocked commands back to the user instead.
 - Never put secrets, tokens, or private credentials in the brief.
 - If `DELEGATE_CLAUDE_CONFIG_DIR` (or `~/.claude-work`) does not exist, this skill does not
   apply; do the work yourself.
@@ -44,7 +46,10 @@ Pick the mode:
   if git history matters, collect it yourself and paste it into the brief. In a git repo it
   runs in a throwaway detached worktree of the base (removed automatically afterwards); outside
   a git repo it runs directly in `--cwd` and `--base` must not be passed.
-- **write** (code change in a worktree): only inside a git repo with at least one commit. The
+- **write** (code change in a worktree): only inside a git repo with at least one commit. It
+  may run shell commands its `auto` mode approves (see Rules); `meta.permission_mode` records
+  the mode the run actually got — if it is not `auto` (the account's organisation may disable
+  it), shell commands were denied: say so in one line. The
   job works on branch `delegate/<id>` in its own worktree created from the base; the user's
   working tree and branch are not touched. `--cwd` must be the repo root or a directory that
   exists on the base; otherwise the script exits 2.
