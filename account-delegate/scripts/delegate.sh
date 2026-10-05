@@ -31,19 +31,26 @@ wt_tampered() {   # true when the worktree or its .git file is not what `worktre
 # config defines them (e.g. git-lfs). Those are programs the user installed, fed the agent's
 # file contents, as in any `git add` of untrusted files; overriding them would corrupt LFS
 # repos. Nested repos are never entered: a gitlink already in the index (a submodule of the
-# base, or a nested repo an earlier plan job committed) is left out of `add` and status uses
-# --ignore-submodules=all, since both would run `git status` inside it and so its own config
-# (filters) as the user; a new nested repo is added as a gitlink without being entered. Changes
-# inside an existing gitlink are therefore not collected. The user's own hooks still run at merge time.
+# base, or a nested repo an earlier plan job committed) whose path still holds a nested repo is
+# left out of `add` and status uses --ignore-submodules=all, since both would run `git status`
+# inside it and so its own config (filters) as the user; a new nested repo is added as a gitlink
+# without being entered. Changes inside an existing nested repo are therefore not collected. A
+# gitlink whose nested repo is gone (deleted, or replaced by a file) has nothing to enter: it is
+# collected like any other path. The user's own hooks still run at merge time.
 cgit() {
   git --git-dir="$GITDIR" --work-tree="$WORKTREE" -c core.hooksPath=/dev/null \
       -c core.fsmonitor=false -c core.untrackedCache=false -c commit.gpgsign=false \
       -c maintenance.auto=false "$@"
 }
-collect_add() {   # add -A in the worktree, leaving out the gitlinks already in the index
+gitlinks() {   # reads `ls-files -s -z` on stdin, prints the paths of its gitlinks, NUL-separated
+  local e
+  while IFS= read -r -d '' e; do [ "${e%% *}" != 160000 ] || printf '%s\0' "${e#*$'\t'}"; done
+}
+has_nested_repo() { [ -e "$1/.git" ] || [ -L "$1/.git" ]; }
+collect_add() {   # add -A in the worktree, leaving out the gitlinks that still hold a nested repo
   cd "$WORKTREE" && cgit ls-files -s -z > "$JOB/index-entries" || return 1
-  local e ps=(.)
-  while IFS= read -r -d '' e; do [ "${e%% *}" != 160000 ] || ps+=(":(exclude,literal)${e#*$'\t'}"); done < "$JOB/index-entries"
+  local p ps=(.)
+  while IFS= read -r -d '' p; do ! has_nested_repo "$p" || ps+=(":(exclude,literal)$p"); done < <(gitlinks < "$JOB/index-entries")
   rm -f "$JOB/index-entries"
   cgit add -A -- "${ps[@]}"
 }
@@ -152,6 +159,10 @@ if [ -n "$PLAN" ]; then
     PARENT_COMMIT="$(cgit rev-parse -q --verify 'HEAD^{commit}')" || die "cannot read the plan branch tip: $BRANCH"
     # status would recurse into nested repos (gitlinks) and run their own config (filters) as the user
     st="$(cd "$WORKTREE" && cgit status --porcelain --ignore-submodules=all)" || die "cannot check the plan worktree for changes: $WORKTREE"
+    # --ignore-submodules=all also hides a gitlink whose nested repo is gone (deleted, or a file now)
+    (cd "$WORKTREE" && cgit ls-files -s -z) > "$PLAN/index-entries" || die "cannot read the plan worktree's index: $WORKTREE"
+    while IFS= read -r -d '' p; do has_nested_repo "$WORKTREE/$p" || st="$st gone:$p"; done < <(gitlinks < "$PLAN/index-entries")
+    rm -f "$PLAN/index-entries"
     [ -z "$st" ] || die "the plan worktree has uncommitted changes (a failed collection?); inspect them safely (see the skill) and resolve them first: $WORKTREE"
     if [ -n "$RESUME" ]; then
       cat "$PLAN"/jobs/*/meta.json 2>/dev/null | jq -r '.session_id // empty' 2>/dev/null | grep -qxF -- "$RESUME" \
@@ -193,7 +204,7 @@ write_meta() { # $1 = exit code of the claude run
     --argjson base_given "$([ "$BASE_GIVEN" -eq 1 ] && echo true || echo false)" \
     --argjson commit_failed "$COMMIT_FAILED" --argjson exit_code "$1" --slurpfile rs "$RESULT_FILE" \
     --arg plan_id "$PLAN_ID" --arg plan_dir "$PLAN" --arg job_n "$N" --arg title "$TITLE" \
-    --arg resumed_from "$RESUME" --arg parent_commit "$PARENT_COMMIT" \
+    --arg resumed_from "$RESUME" --arg parent_commit "$PARENT_COMMIT" --arg gitdir "$([ "$MODE" = write ] && echo "$GITDIR")" \
     --arg started "$STARTED" --arg finished "$(now)" '
     def opt: if . == "" then null else . end;
     ($rs[0] // null) as $r |
@@ -204,7 +215,7 @@ write_meta() { # $1 = exit code of the claude run
      commit_failed: $commit_failed, exit_code: $exit_code,
      plan_id: ($plan_id | opt), plan_dir: ($plan_dir | opt),
      job_n: (if $job_n == "" then null else ($job_n | tonumber) end),
-     title: ($title | opt), resumed_from: ($resumed_from | opt), parent_commit: ($parent_commit | opt),
+     title: ($title | opt), resumed_from: ($resumed_from | opt), parent_commit: ($parent_commit | opt), gitdir: ($gitdir | opt),
      is_error: (($r == null) or ($r.is_error == true) or ($exit_code != 0)),
      subtype: $r.subtype, num_turns: $r.num_turns, total_cost_usd: $r.total_cost_usd,
      permission_denials: ($r.permission_denials // []), session_id: $r.session_id,

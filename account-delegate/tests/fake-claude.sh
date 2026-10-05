@@ -49,6 +49,10 @@ case "${FAKE_MODE:-ok}" in
     : > "$(git rev-parse --git-dir)/index.lock"
     echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"locked"}'
     ;;
+  nested_gone)   # replaces the nested repo committed by an earlier job with a plain file
+    rm -rf nested && echo plain > nested
+    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"nested gone"}'
+    ;;
   nested_filter)   # a nested repo whose own config sets a clean filter that leaves a marker
     mkdir nested && (cd nested && git init -q && echo a > f && echo '* filter=ev' > .gitattributes \
       && git add -A && git -c user.name=x -c user.email=x@x commit -qm n \

@@ -21,8 +21,10 @@ Two modes:
   explained in `stderr.log`) and the worktree is left as is. Clean/smudge filters your own git
   config defines (e.g. git-lfs) still run on the agent's files, as in any `git add`. Git never
   runs inside nested repos: a gitlink already in the index (a submodule of the base, a nested
-  repo an earlier plan job committed) is left out of the collection, so changes inside it are
-  not collected; a new nested repo is committed as a gitlink.
+  repo an earlier plan job committed) is left out of the collection while its path still holds
+  a nested repo, so changes inside it are not collected; if the nested repo is gone (deleted,
+  or replaced by a file) that change is collected like any other. A new nested repo is
+  committed as a gitlink.
 
 ## Plan mode
 
@@ -95,7 +97,7 @@ Each job dir (created private, `umask 077`) holds `brief.md`, `pid` (delegate.sh
 id), `events.jsonl` (stream-json), `stderr.log`, `result.md` (final report), `meta.json`
 (mode, exit code, error flag, turns, cost, denials; `base`, the ref as given, and `base_commit`,
 the sha it resolved to, both null outside git; `start_branch`, the branch you were on when the
-job started, null if detached or outside git; in write mode also `branch`, `commit`,
+job started, null if detached or outside git; in write mode also `gitdir` (the worktree's git dir, pinned before the run), `branch`, `commit`,
 `commit_failed`) and `worktree/` (git repos only; in ro mode normally removed again after the
 run). `meta.worktree` is the worktree path while it still exists: always in write mode, and in ro
 mode only if the automatic removal failed (the reason is in `stderr.log`); otherwise null. The
