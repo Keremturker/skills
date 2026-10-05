@@ -60,6 +60,7 @@ Rules for every Kotlin change in this project. How to scaffold a screen or a mod
 - Dependency versions live only in `gradle/libs.versions.toml`; build scripts use `libs.*`.
   A new library goes into the module's own `build.gradle.kts`, never into `build-logic`.
 - KSP, never kapt.
+- Logging goes through Kermit (`core/logging`, already on every module's classpath): `private val log = Logger.withTag("Name")`. No `println`; no tokens, bodies, headers or user data in a log line.
 - The `@file:Suppress(...)` lines in generated files (`Screens.kt`, `initKoin.kt`) belong to the
   template. Leave them and add no suppressions of your own.
 

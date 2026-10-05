@@ -113,7 +113,7 @@ Kotlin hard keywords (`kotlinHardKeywords`): `as`, `break`, `class`, `continue`,
 - `iosVersionInvalid`: iOS Version must be between 15.0 and 26.2
 
 ## Anatomy (which modules appear)
-- Always: androidApp, iosApp, shared, core/domain, core/presentation, core/navigation, build-logic — shared wires Koin (DI) + Navigation, which are always included.
+- Always: androidApp, iosApp, shared, core/domain, core/logging, core/presentation, core/navigation, build-logic — shared wires Koin (DI) + Navigation, which are always included; core/logging sets up Kermit logging in every project.
 - `core/network`: if network (Ktor HTTP client)
 - `core/designsystem`: if theming || multiLang (theme (palette + KtTheme) and/or LocalStringResources)
 - `core/multilang`: if multiLang (i18n / localization)

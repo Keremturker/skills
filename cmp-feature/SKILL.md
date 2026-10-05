@@ -30,7 +30,7 @@ The code rules for what goes inside the files are in `cmp-code-rules`.
 - The package root, read from `contract/Screens.kt`.
 - The Koin module class(es) under `*/di/` and their lines in `shared/.../di/initKoin.kt`.
 - `shared/.../MainScreen.kt`: the start destination and how navigation providers are collected.
-- Which `core/*` modules exist (`network`, `database`, `presentation`, `designsystem`, `multilang`);
+- Which `core/*` modules exist (`logging`, `network`, `database`, `presentation`, `designsystem`, `multilang`);
   the sections below apply only to what is there.
 
 ## 3. Skeleton

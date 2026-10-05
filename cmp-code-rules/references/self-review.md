@@ -16,7 +16,7 @@ files; do not review the whole project.
 | `java.`, `android.`, `System.`, `String.format` under `src/commonMain` | breaks the iOS gate | common API or `expect`/`actual` |
 | `@Preview` under `src/commonMain` | breaks the iOS gate | remove, or move to `androidMain` (see `cmp-feature`) |
 | a ViewModel save/add/delete/send action with no in-flight guard | a double tap writes twice | an `isSaving`-style flag that the action checks and the button reads (section 7) |
-| `println(` | debug output left behind; forbidden here, but detekt does not catch it (see `cmp-detekt`) | remove |
+| `println(` | debug output left behind; forbidden here, but detekt does not catch it (see `cmp-detekt`) | remove, or `log.d { }` through a Kermit logger if the line is worth keeping |
 | `!!` | crash instead of a handled case | `?:`, `requireNotNull` with a message, typed error |
 | a user-visible string literal in a composable | not translatable | a `StringResourcesUiModel` property (`core/multilang`), else `stringResource(Res.string.key)` |
 | a language object with empty strings; in projects whose `LanguageManagerImpl` has `updateResource`, a `StringResourcesUiModel` default that is not the English text | blank UI in that language | fill it; there, default = English text |

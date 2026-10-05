@@ -516,14 +516,22 @@ style:
   ForbiddenMethodCall:
     active: true
     methods:
-      - 'kotlin.io.print'
-      - 'kotlin.io.println'
-      - 'android.util.Log.d'
-      - 'android.util.Log.e'
-      - 'android.util.Log.i'
-      - 'android.util.Log.w'
-      - 'android.util.Log.v'
-      - 'android.util.Log.wtf'
+      - value: 'kotlin.io.print'
+        reason: 'Use the Kermit Logger (Logger.withTag("...") from core/logging) instead'
+      - value: 'kotlin.io.println'
+        reason: 'Use the Kermit Logger (Logger.withTag("...") from core/logging) instead'
+      - value: 'android.util.Log.d'
+        reason: 'Use the Kermit Logger (Logger.withTag("...") from core/logging) instead'
+      - value: 'android.util.Log.e'
+        reason: 'Use the Kermit Logger (Logger.withTag("...") from core/logging) instead'
+      - value: 'android.util.Log.i'
+        reason: 'Use the Kermit Logger (Logger.withTag("...") from core/logging) instead'
+      - value: 'android.util.Log.w'
+        reason: 'Use the Kermit Logger (Logger.withTag("...") from core/logging) instead'
+      - value: 'android.util.Log.v'
+        reason: 'Use the Kermit Logger (Logger.withTag("...") from core/logging) instead'
+      - value: 'android.util.Log.wtf'
+        reason: 'Use the Kermit Logger (Logger.withTag("...") from core/logging) instead'
   ForbiddenVoid:
     active: true
     ignoreOverridden: false
