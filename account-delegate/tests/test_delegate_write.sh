@@ -40,6 +40,7 @@ check "commit message" bash -c 'git -C "$1" log -1 --format=%s delegate/w1 | gre
 check "meta.commit is the branch tip" test "$(meta .commit)" = "$(git -C "$REPO" rev-parse delegate/w1)"
 check "meta.branch" test "$(meta .branch)" = delegate/w1
 check "meta.commit_failed false" test "$(meta .commit_failed)" = false
+check "meta.gitdir is the worktree's pinned git dir" test "$(meta .gitdir)" = "$(git -C "$JOB/worktree" rev-parse --absolute-git-dir)"
 check "meta.start_branch is the user's branch" test "$(meta .start_branch)" = "$(git -C "$REPO" symbolic-ref --short HEAD)"
 check "job dir is private (umask 077)" bash -c 'ls -ld "$1" | grep -q "^drwx------"' _ "$JOB"
 check "meta.json is private" bash -c 'ls -l "$1/meta.json" | grep -q "^-rw-------"' _ "$JOB"

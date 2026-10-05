@@ -197,5 +197,19 @@ FAKE_MODE=write FAKE_FILE=n.txt run --mode write --plan "$NPLAN" --cwd "$REPO" -
 check "collection does not run the nested repo's filter" test ! -e "$FAKE_LOG/filter-ran"
 check "job after a nested repo commits its change" bash -c 'test "$1" -eq 0 && test "$(git -C "$2" show --name-only --format= delegate/p6)" = n.txt' _ "$CODE" "$REPO"
 
+# --- a nested repo that is gone (deleted, or replaced by a file) is collected, and seen as a change
+FAKE_MODE=nested_gone run --mode write --plan "$NPLAN" --cwd "$REPO" --brief "$B"
+check "nested repo replaced by a file: collected as a file" bash -c 'test "$1" -eq 0 && git -C "$2" ls-tree delegate/p6 nested | grep -q "^100644 blob "' _ "$CODE" "$REPO"
+check "nested repo replaced by a file: no filter ran" test ! -e "$FAKE_LOG/filter-ran"
+GPLAN="$TMP/plans/p10"
+FAKE_MODE=nested_filter run --mode write --plan "$GPLAN" --cwd "$REPO" --brief "$B" --base "$MAIN"
+check "second nested repo plan created" test "$CODE" -eq 0
+rm -rf "$GPLAN/worktree/nested"   # left behind uncollected, e.g. by this session
+run --mode write --plan "$GPLAN" --cwd "$REPO" --brief "$B"
+check "deleted nested repo counts as an uncommitted change" bash -c 'test "$1" -eq 2 && grep -qi uncommitted "$2"' _ "$CODE" "$TMP/err"
+echo plain > "$GPLAN/worktree/nested"
+run --mode write --plan "$GPLAN" --cwd "$REPO" --brief "$B"
+check "nested repo replaced by a file counts as an uncommitted change" bash -c 'test "$1" -eq 2 && grep -qi uncommitted "$2"' _ "$CODE" "$TMP/err"
+
 rm -rf "$TMP"
 exit $fail

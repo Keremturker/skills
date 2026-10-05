@@ -149,7 +149,9 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
       git metadata. Run NO git command inside `<JOB_DIR>/worktree` (not even `git status`): its
       `.git` may point at a git dir whose config runs commands. Tell the user plainly, list the
       files with plain tools (`ls -la`), and leave the cleanup to them.
-    - Otherwise also show `git -C <JOB_DIR>/worktree status`.
+    - Otherwise also show the status, but never with plain `git` inside the worktree (a nested
+      repo's own config could run): use the git dir pinned in `meta.gitdir`,
+      `git --git-dir=<meta.gitdir> --work-tree=<JOB_DIR>/worktree -c core.hooksPath=/dev/null -c core.fsmonitor=false status --ignore-submodules=all`.
   - Otherwise (a commit on `delegate/<id>`):
     1. The merge target is `meta.base`, but only when it is a local branch
        (`git -C <repo> show-ref -q --verify refs/heads/<base>`). For anything else (`origin/x`,
