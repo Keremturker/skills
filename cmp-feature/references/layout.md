@@ -49,7 +49,7 @@ same module, with the same package.
 ## Build files
 
 These are the files the generator writes, in every planned feature of both generations. The convention plugins already bring Koin (with
-annotations and KSP), kotlinx-serialization and the `core/*` modules listed below; do not add them
+annotations and KSP), kotlinx-serialization, `core/logging` (Kermit) and the `core/*` modules listed below; do not add them
 again.
 
 ```kotlin
