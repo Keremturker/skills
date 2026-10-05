@@ -45,8 +45,9 @@ check "id with a slash exits 2" test "$CODE" -eq 2
 
 # --- read-only success
 export CLAUDECODE=1 CLAUDE_CODE_ENTRYPOINT=cli CLAUDE_CODE_SESSION_ID=parent ANTHROPIC_API_KEY=sk-personal
+export CLAUDE_CODE_FOO=1 CLAUDE_CODE_OAUTH_TOKEN=x ANTHROPIC_AUTH_TOKEN=t ANTHROPIC_BASE_URL=http://x ANTHROPIC_MODEL=m
 FAKE_MODE=ok run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md"
-unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_SESSION_ID ANTHROPIC_API_KEY
+unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_SESSION_ID ANTHROPIC_API_KEY CLAUDE_CODE_FOO CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL ANTHROPIC_MODEL
 check "ro run exits 0" test "$CODE" -eq 0
 check "first stdout line is JOB_DIR=" bash -c 'head -n 1 <<<"$1" | grep -q "^JOB_DIR=/"' _ "$OUT"
 check "job id has the documented format" bash -c 'basename "$1" | grep -Eq "^[0-9]{8}-[0-9]{6}-[a-z0-9]{4}$"' _ "$JOB"
@@ -59,6 +60,9 @@ check "runs in --cwd" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$TMP/proj" && pwd -
 check "env isolation: CLAUDECODE unset" bash -c '! grep -q "^CLAUDECODE=" "$1"' _ "$FAKE_LOG/env"
 check "env isolation: CLAUDE_CODE_* unset" bash -c '! grep -q "^CLAUDE_CODE_" "$1"' _ "$FAKE_LOG/env"
 check "env isolation: ANTHROPIC_API_KEY unset" bash -c '! grep -q "^ANTHROPIC_API_KEY=" "$1"' _ "$FAKE_LOG/env"
+for v in CLAUDE_CODE_FOO CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL ANTHROPIC_MODEL; do
+  check "env isolation: $v unset" bash -c '! grep -q "^$2=" "$1"' _ "$FAKE_LOG/env" "$v"
+done
 check "headless flag" has_arg -p
 check "stream-json output" has_arg stream-json
 check "verbose (required by stream-json)" has_arg --verbose
@@ -119,7 +123,14 @@ JOB="$DELEGATE_CACHE_DIR/term-1"
 check "TERM mid-run exits 1" test "$CODE" -eq 1
 check "TERM mid-run still writes meta" test -s "$JOB/meta.json"
 check "TERM mid-run marks error" test "$(meta .is_error)" = true
-check "TERM mid-run leaves no fake claude running" bash -c '! pgrep -f "fake-claude.sh" >/dev/null'
+check "TERM mid-run leaves no fake claude running" bash -c '! kill -0 "$(cat "$1/pid")" 2>/dev/null' _ "$FAKE_LOG"
+
+# --- TERM right after start, before the child is up
+FAKE_MODE=ok bash "$DELEGATE" --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md" --id term-2 >/dev/null 2>&1 &
+PID=$!
+sleep 0.05; kill -TERM "$PID" 2>/dev/null; wait "$PID"; CODE=$?
+JOB="$DELEGATE_CACHE_DIR/term-2"
+check "early TERM writes meta" test -s "$JOB/meta.json"
 
 rm -rf "$TMP"
 exit $fail

@@ -51,6 +51,9 @@ mkdir -p "$JOB" || die "cannot create $JOB"
 JOB="$(cd "$JOB" && pwd)"
 cp "$BRIEF" "$JOB/brief.md"
 : > "$JOB/stderr.log"
+CHILD="" INTERRUPTED=0
+on_signal() { INTERRUPTED=1; [ -n "$CHILD" ] && kill -TERM "$CHILD" 2>/dev/null; return 0; }
+trap on_signal TERM INT HUP
 echo "JOB_DIR=$JOB"
 STARTED="$(now)"
 
@@ -88,13 +91,9 @@ case "$MODE" in
     ;;
 esac
 
-CHILD=""
-on_signal() { [ -n "$CHILD" ] && kill -TERM "$CHILD" 2>/dev/null; }
-trap on_signal TERM INT HUP
-
 cd "$WORKDIR" || { write_meta 1; exit 1; }
 # Strip the parent session's identity: CLAUDECODE, every CLAUDE_CODE_* var, and the personal API key.
-UNSET=(-u CLAUDECODE -u ANTHROPIC_API_KEY)
+UNSET=(-u CLAUDECODE -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL -u ANTHROPIC_MODEL)
 while IFS= read -r v; do UNSET+=(-u "$v"); done < <(compgen -e | grep '^CLAUDE_CODE_')
 env "${UNSET[@]}" \
     CLAUDE_CONFIG_DIR="$CONFIG" \
@@ -102,11 +101,12 @@ env "${UNSET[@]}" \
     --append-system-prompt "$REPORT" "${FLAGS[@]}" \
     < "$JOB/brief.md" > "$JOB/events.jsonl" 2>> "$JOB/stderr.log" &
 CHILD=$!
+[ "$INTERRUPTED" -eq 1 ] && kill -TERM "$CHILD" 2>/dev/null   # signal arrived before the child existed
 wait "$CHILD"; CODE=$?
 if kill -0 "$CHILD" 2>/dev/null; then   # wait was interrupted by a signal
   kill -TERM "$CHILD" 2>/dev/null; wait "$CHILD"; CODE=143
 fi
-trap - TERM INT HUP
+trap '' TERM INT HUP   # stay alive until meta.json is written
 
 RESULT_LINE="$(jq -R -c 'fromjson? | select(.type == "result")' "$JOB/events.jsonl" | tail -n 1)"
 if [ -n "$RESULT_LINE" ]; then

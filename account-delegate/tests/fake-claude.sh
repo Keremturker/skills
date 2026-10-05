@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Stand-in for `claude` in tests: records how it was called and prints a canned stream-json run.
+echo $$ > "$FAKE_LOG/pid"
 printf '%s\n' "$@" > "$FAKE_LOG/args"
 cat > "$FAKE_LOG/stdin"
 pwd -P > "$FAKE_LOG/pwd"
