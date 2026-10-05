@@ -36,21 +36,24 @@ CACHE="${DELEGATE_CACHE_DIR:-$HOME/.cache/claude-delegate}"
 MAX_TURNS="${DELEGATE_MAX_TURNS:-40}"
 case "$MAX_TURNS" in ''|*[!0-9]*|0) die "DELEGATE_MAX_TURNS must be a positive integer" ;; esac
 
-TOP="" PREFIX=""
+TOP="" PREFIX="" START_BRANCH=""
 if [ "$MODE" = write ]; then
   TOP="$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null)" || die "write mode needs a git repository: $CWD"
   git -C "$TOP" rev-parse -q --verify HEAD >/dev/null || die "write mode needs at least one commit: $TOP"
   PREFIX="$(git -C "$CWD" rev-parse --show-prefix)"
   [ -z "$PREFIX" ] || git -C "$TOP" cat-file -e "HEAD:${PREFIX%/}" 2>/dev/null \
     || die "--cwd is not tracked in HEAD (untracked or ignored directory): $CWD"
+  START_BRANCH="$(git -C "$TOP" symbolic-ref -q --short HEAD)"   # empty when detached
 fi
 
 [ -n "$ID" ] || ID="$(date +%Y%m%d-%H%M%S)-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom 2>/dev/null | head -c 4)"
 case "$ID" in ''|*[!A-Za-z0-9._-]*|.*) die "invalid --id: $ID" ;; esac
 JOB="$CACHE/$ID"
 [ -e "$JOB" ] && die "job dir already exists: $JOB"
+umask 077   # job dirs hold briefs, reports and the worktree: private to the user
 mkdir -p "$JOB" || die "cannot create $JOB"
 JOB="$(cd "$JOB" && pwd)"
+echo $$ > "$JOB/pid"   # lets watch.sh notice a delegate.sh that died without writing meta.json
 cp "$BRIEF" "$JOB/brief.md"
 : > "$JOB/stderr.log"
 CHILD="" INTERRUPTED=0
@@ -59,23 +62,35 @@ trap on_signal TERM INT HUP
 echo "JOB_DIR=$JOB"
 STARTED="$(now)"
 
-WORKDIR="$CWD" WORKTREE="" BRANCH="" COMMIT="" COMMIT_FAILED=false RESULT_LINE=""
+WORKDIR="$CWD" WORKTREE="" BRANCH="" COMMIT="" COMMIT_FAILED=false RESULT_FILE=/dev/null
 
 write_meta() { # $1 = exit code of the claude run
-  local r="${RESULT_LINE:-null}"
-  jq -n --arg id "$ID" --arg mode "$MODE" --arg cwd "$CWD" --arg workdir "$WORKDIR" \
+  # The result line goes in by file: it can be megabytes, more than fits in an argument.
+  if ! jq -n --arg id "$ID" --arg mode "$MODE" --arg cwd "$CWD" --arg workdir "$WORKDIR" \
     --arg worktree "$WORKTREE" --arg branch "$BRANCH" --arg commit "$COMMIT" \
-    --argjson commit_failed "$COMMIT_FAILED" --argjson exit_code "$1" --argjson r "$r" \
+    --arg start_branch "$START_BRANCH" \
+    --argjson commit_failed "$COMMIT_FAILED" --argjson exit_code "$1" --slurpfile rs "$RESULT_FILE" \
     --arg started "$STARTED" --arg finished "$(now)" '
     def opt: if . == "" then null else . end;
+    ($rs[0] // null) as $r |
     {id: $id, mode: $mode, cwd: $cwd, workdir: $workdir,
      worktree: ($worktree | opt), branch: ($branch | opt), commit: ($commit | opt),
+     start_branch: ($start_branch | opt),
      commit_failed: $commit_failed, exit_code: $exit_code,
      is_error: (($r == null) or ($r.is_error == true) or ($exit_code != 0)),
      subtype: $r.subtype, num_turns: $r.num_turns, total_cost_usd: $r.total_cost_usd,
      permission_denials: ($r.permission_denials // []), session_id: $r.session_id,
-     started_at: $started, finished_at: $finished}' > "$JOB/meta.json.tmp" \
-    && mv "$JOB/meta.json.tmp" "$JOB/meta.json"
+     started_at: $started, finished_at: $finished}' > "$JOB/meta.json.tmp" 2>> "$JOB/stderr.log"; then
+    # Fallback so watch.sh and the caller always get a meta.json. ID is [A-Za-z0-9._-],
+    # MODE is ro|write, BRANCH is delegate/<ID> and COMMIT is hex, so no escaping is needed.
+    local b=null c=null
+    [ -n "$BRANCH" ] && b="\"$BRANCH\""
+    [ -n "$COMMIT" ] && c="\"$COMMIT\""
+    echo "delegate: could not build meta.json with jq; wrote a minimal one" >> "$JOB/stderr.log"
+    printf '{"id":"%s","mode":"%s","exit_code":%d,"is_error":true,"branch":%s,"commit":%s,"commit_failed":%s}\n' \
+      "$ID" "$MODE" "$1" "$b" "$c" "$COMMIT_FAILED" > "$JOB/meta.json.tmp"
+  fi
+  mv "$JOB/meta.json.tmp" "$JOB/meta.json"
 }
 
 REPORT='You are running headless on behalf of another Claude Code session. No human can answer questions or approve permission prompts during this run. Do the task in the brief as far as your permissions allow. If a tool call is denied, do not try to reach the same outcome another way; record it instead. Finish with a report written in the language of the brief, with exactly these sections: "## Done", "## Findings", "## Blocked or needed commands" (each denied or needed command verbatim, with the reason it is needed), "## Open questions".'
@@ -95,6 +110,9 @@ case "$MODE" in
       BRANCH="" WORKTREE=""
       write_meta 1; exit 1
     fi
+    # Pin the worktree's git dir and its .git file now, before the agent can touch them.
+    GITDIR="$(git -C "$WORKTREE" rev-parse --absolute-git-dir)"
+    GITFILE_HEX="$(od -An -tx1 < "$WORKTREE/.git" | tr -d ' \n')"
     WORKDIR="$WORKTREE/$PREFIX"
     FLAGS=(--permission-mode acceptEdits)
     REPORT="$REPORT Work only inside the current directory tree. Do not commit, push or create branches: your file changes are collected and committed for you after you finish."
@@ -102,9 +120,10 @@ case "$MODE" in
 esac
 
 cd "$WORKDIR" || { write_meta 1; exit 1; }
-# Strip the parent session's identity: CLAUDECODE, every CLAUDE_CODE_* var, and the personal API key.
-UNSET=(-u CLAUDECODE -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL -u ANTHROPIC_MODEL)
-while IFS= read -r v; do UNSET+=(-u "$v"); done < <(compgen -e | grep '^CLAUDE_CODE_')
+# Strip the parent session's identity: CLAUDECODE, every CLAUDE_CODE_* and every ANTHROPIC_* var
+# (API key, auth token, base URL, models, custom headers, ...).
+UNSET=(-u CLAUDECODE)
+while IFS= read -r v; do UNSET+=(-u "$v"); done < <(compgen -e | grep -E '^(CLAUDE_CODE_|ANTHROPIC_)')
 env "${UNSET[@]}" \
     CLAUDE_CONFIG_DIR="$CONFIG" \
     "$BIN" -p --output-format stream-json --verbose --max-turns "$MAX_TURNS" \
@@ -118,19 +137,42 @@ if kill -0 "$CHILD" 2>/dev/null; then   # wait was interrupted by a signal
 fi
 trap '' TERM INT HUP   # stay alive until meta.json is written
 
-RESULT_LINE="$(jq -R -c 'fromjson? | select(.type == "result")' "$JOB/events.jsonl" | tail -n 1)"
-if [ -n "$RESULT_LINE" ]; then
-  jq -r '.result // ""' <<<"$RESULT_LINE" > "$JOB/result.md"
-else
-  : > "$JOB/result.md"
-fi
+jq -R -c 'fromjson? | select(.type == "result")' "$JOB/events.jsonl" | tail -n 1 > "$JOB/result-line.json"
+RESULT_FILE="$JOB/result-line.json"
+jq -r '.result // ""' "$RESULT_FILE" > "$JOB/result.md"   # empty when there is no result line
 
+# Collection runs as the user, outside the second account's sandbox, over a tree the agent
+# controlled. Nothing in that tree may decide what git executes:
+# - the git dir is the one pinned right after `worktree add`, never the tree's .git file
+#   (a rewritten .git could name a git dir with core.fsmonitor=<cmd>, which `add` runs);
+#   if the .git file changed at all, nothing is collected and the worktree is left as is;
+# - hooks are off (core.hooksPath=/dev/null plus --no-verify), so a tracked hooks dir
+#   (core.hooksPath=.hooks, husky) edited by the agent never runs here;
+# - core.fsmonitor is off; -c values also reach any git child process.
+# Residual: clean/smudge filters named in the tree's .gitattributes run if the user's own git
+# config defines them (e.g. git-lfs). Those are programs the user installed, fed the agent's
+# file contents, as in any `git add` of untrusted files; overriding them would corrupt LFS
+# repos. Nested repos the agent creates are added as gitlinks; add/commit do not run their
+# config (commit does not recurse into them). The user's own hooks still run at merge time.
+cgit() {
+  git --git-dir="$GITDIR" --work-tree="$WORKTREE" -c core.hooksPath=/dev/null \
+      -c core.fsmonitor=false -c core.untrackedCache=false -c commit.gpgsign=false \
+      -c maintenance.auto=false "$@"
+}
 if [ "$MODE" = write ]; then
-  if ! git -C "$WORKTREE" add -A >> "$JOB/stderr.log" 2>&1; then
+  if [ ! -d "$WORKTREE" ] || [ -L "$WORKTREE" ] || [ -L "$WORKTREE/.git" ] || [ ! -f "$WORKTREE/.git" ] \
+     || [ "$(od -An -tx1 < "$WORKTREE/.git" | tr -d ' \n')" != "$GITFILE_HEX" ]; then
     COMMIT_FAILED=true
-  elif ! git -C "$WORKTREE" diff --cached --quiet; then
-    if git -C "$WORKTREE" -c commit.gpgsign=false commit -q -m "delegate: $ID" >> "$JOB/stderr.log" 2>&1; then
-      COMMIT="$(git -C "$WORKTREE" rev-parse HEAD)"
+    echo "delegate: $WORKTREE/.git was changed or removed during the run; nothing was collected or committed. Do not run git inside the worktree (its .git may point at a git dir the agent built); inspect the files with plain tools." >> "$JOB/stderr.log"
+  elif ! (cd "$WORKTREE" && cgit add -A) >> "$JOB/stderr.log" 2>&1; then
+    COMMIT_FAILED=true
+  elif ! cgit diff --cached --quiet; then
+    if cgit commit -q --no-verify -m "delegate: $ID" >> "$JOB/stderr.log" 2>&1; then
+      COMMIT="$(cgit rev-parse -q --verify 'HEAD^{commit}')"
+      if [ -z "$COMMIT" ] || [ "$COMMIT" != "$(cgit rev-parse -q --verify "refs/heads/$BRANCH^{commit}")" ]; then
+        echo "delegate: the new commit is not the tip of $BRANCH; not reporting it" >> "$JOB/stderr.log"
+        COMMIT="" COMMIT_FAILED=true
+      fi
     else
       COMMIT_FAILED=true
     fi
@@ -138,4 +180,5 @@ if [ "$MODE" = write ]; then
 fi
 
 write_meta "$CODE"
+rm -f "$JOB/result-line.json"
 [ "$(jq -r .is_error "$JOB/meta.json")" = false ] && exit 0 || exit 1

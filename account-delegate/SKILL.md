@@ -105,19 +105,42 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
   (`total_cost_usd`) and turns in one line.
 - **Blocked or needed commands** (report section, or `permission_denials` in meta): list them
   and ask the user whether you should run them here. Run only the ones they approve.
-- **Write mode:**
+- **Write mode:** delegate.sh committed the changes for the job with git hooks disabled and
+  with the git dir it pinned before the run, so nothing the job edited (a tracked hooks dir,
+  the worktree's `.git` file) ran on this machine. The user's own hooks run normally when you
+  merge in their tree.
   - If `commit` is null and `commit_failed` is false, there were no changes: remove the
     worktree (`git -C <repo> worktree remove <JOB_DIR>/worktree`), delete the branch
-    (`git -C <repo> branch -d delegate/<id>`; it equals HEAD's ancestor) and say so.
-  - If `commit_failed` is true (e.g. a repo git hook rejected the commit), the worktree holds
-    the only copy of the work: do NOT remove it unless the user says so. Show the end of
-    `stderr.log` and the worktree's `git status`, and ask how to proceed.
-  - Otherwise show `git -C <repo> diff --stat HEAD...delegate/<id>` and ask "birleştireyim mi?".
-    On yes (ask first if the user's working tree has uncommitted changes that could conflict),
-    run `git -C <repo> merge --no-ff --no-edit delegate/<id>`; on conflict run
-    `git -C <repo> merge --abort` and ask the user. After a successful merge remove the
-    worktree and delete the branch with `git branch -d` (never `-D`). On no, leave the branch
-    and remove only the worktree; use `-D` only if the user explicitly says to discard it.
+    (`git -C <repo> branch -d delegate/<id>`) and say so. The branch still points at the commit
+    the job started from, so `-d` accepts it while that commit is in the history of the user's
+    current branch (normally `start_branch`); if `-d` refuses (e.g. the user switched to an
+    unrelated branch), tell the user instead of using `-D`.
+  - If `commit_failed` is true, the worktree holds the only copy of the work: do NOT remove it
+    unless the user says so. Show the end of `stderr.log` and ask how to proceed.
+    - If `stderr.log` says the worktree's `.git` was changed or removed, the job tampered with
+      git metadata. Run NO git command inside `<JOB_DIR>/worktree` (not even `git status`): its
+      `.git` may point at a git dir whose config runs commands. Tell the user plainly, list the
+      files with plain tools (`ls -la`), and leave the cleanup to them.
+    - Otherwise also show `git -C <JOB_DIR>/worktree status`.
+  - Otherwise (a commit on `delegate/<id>`):
+    1. Check the user's current branch (`git -C <repo> symbolic-ref -q --short HEAD`). If it
+       differs from `start_branch` (or either is null, i.e. a detached HEAD), tell the user
+       and ask which branch to merge into before going on; do not merge into a branch they
+       did not confirm.
+    2. Show `git -C <repo> diff --stat HEAD...delegate/<id>` and offer the full diff
+       (`git -C <repo> diff HEAD...delegate/<id>`); if it is small (roughly under 200 lines),
+       show it directly. Explicitly point out every change to git hooks (`.githooks/`,
+       `.husky/`, `.hooks/`, the dir in `core.hooksPath`), CI config (`.github/workflows/`,
+       `.gitlab-ci.yml`, ...), and build or package scripts (`build.gradle*`, `package.json`
+       scripts, `Makefile`, shell scripts) and show those hunks in full: they run code on the
+       user's machine or CI once merged, and hooks in a tracked hooks dir already run during
+       the merge commit.
+    3. Ask "birleştireyim mi?". On yes (ask first if the user's working tree has uncommitted
+       changes that could conflict), run `git -C <repo> merge --no-ff --no-edit delegate/<id>`;
+       on conflict run `git -C <repo> merge --abort` and ask the user. After a successful
+       merge remove the worktree and delete the branch with `git branch -d` (never `-D`). On
+       no, leave the branch and remove only the worktree; use `-D` only if the user explicitly
+       says to discard it.
   - Never use `--force` when removing a worktree; if removal is refused, tell the user.
 - **Failure** (`is_error: true`, non-zero `exit_code`, or empty `result.md`): show the last
   ~20 lines of `watch.sh`-formatted events

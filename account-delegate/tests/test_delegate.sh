@@ -46,8 +46,10 @@ check "id with a slash exits 2" test "$CODE" -eq 2
 # --- read-only success
 export CLAUDECODE=1 CLAUDE_CODE_ENTRYPOINT=cli CLAUDE_CODE_SESSION_ID=parent ANTHROPIC_API_KEY=sk-personal
 export CLAUDE_CODE_FOO=1 CLAUDE_CODE_OAUTH_TOKEN=x ANTHROPIC_AUTH_TOKEN=t ANTHROPIC_BASE_URL=http://x ANTHROPIC_MODEL=m
+export ANTHROPIC_CUSTOM_HEADERS='X-A: b' ANTHROPIC_SMALL_FAST_MODEL=s
 FAKE_MODE=ok run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md"
 unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_SESSION_ID ANTHROPIC_API_KEY CLAUDE_CODE_FOO CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL ANTHROPIC_MODEL
+unset ANTHROPIC_CUSTOM_HEADERS ANTHROPIC_SMALL_FAST_MODEL
 check "ro run exits 0" test "$CODE" -eq 0
 check "first stdout line is JOB_DIR=" bash -c 'head -n 1 <<<"$1" | grep -q "^JOB_DIR=/"' _ "$OUT"
 check "job id has the documented format" bash -c 'basename "$1" | grep -Eq "^[0-9]{8}-[0-9]{6}-[a-z0-9]{4}$"' _ "$JOB"
@@ -60,7 +62,8 @@ check "runs in --cwd" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$TMP/proj" && pwd -
 check "env isolation: CLAUDECODE unset" bash -c '! grep -q "^CLAUDECODE=" "$1"' _ "$FAKE_LOG/env"
 check "env isolation: CLAUDE_CODE_* unset" bash -c '! grep -q "^CLAUDE_CODE_" "$1"' _ "$FAKE_LOG/env"
 check "env isolation: ANTHROPIC_API_KEY unset" bash -c '! grep -q "^ANTHROPIC_API_KEY=" "$1"' _ "$FAKE_LOG/env"
-for v in CLAUDE_CODE_FOO CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL ANTHROPIC_MODEL; do
+check "env isolation: no ANTHROPIC_* at all" bash -c '! grep -q "^ANTHROPIC_" "$1"' _ "$FAKE_LOG/env"
+for v in CLAUDE_CODE_FOO CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL ANTHROPIC_MODEL ANTHROPIC_CUSTOM_HEADERS ANTHROPIC_SMALL_FAST_MODEL; do
   check "env isolation: $v unset" bash -c '! grep -q "^$2=" "$1"' _ "$FAKE_LOG/env" "$v"
 done
 check "headless flag" has_arg -p
@@ -83,6 +86,7 @@ check "meta cost" test "$(meta .total_cost_usd)" = 0.3
 check "meta session_id" test "$(meta .session_id)" = s1
 check "meta worktree null in ro" test "$(meta .worktree)" = null
 check "meta branch null in ro" test "$(meta .branch)" = null
+check "meta start_branch null in ro" bash -c 'jq -e "has(\"start_branch\") and .start_branch == null" "$1" >/dev/null' _ "$JOB/meta.json"
 check "meta timestamps" bash -c 'jq -e ".started_at and .finished_at" "$1" >/dev/null' _ "$JOB/meta.json"
 
 # --- options
@@ -114,6 +118,11 @@ check "crash is_error true" test "$(meta .is_error)" = true
 check "crash leaves empty result.md" test ! -s "$JOB/result.md"
 check "crash stderr captured" grep -q boom "$JOB/stderr.log"
 
+FAKE_MODE=big run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md"
+check "~2 MB result: meta.json exists and parses" bash -c 'jq -e .exit_code "$1" >/dev/null 2>&1' _ "$JOB/meta.json"
+check "~2 MB result: exits 0" test "$CODE" -eq 0
+check "~2 MB result: result.md holds the report" test "$(wc -c < "$JOB/result.md")" -ge 2000000
+
 # --- TERM mid-run
 FAKE_MODE=sleep bash "$DELEGATE" --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md" --id term-1 >/dev/null 2>&1 &
 PID=$!
@@ -131,6 +140,18 @@ PID=$!
 sleep 0.05; kill -TERM "$PID" 2>/dev/null; wait "$PID"; CODE=$?
 JOB="$DELEGATE_CACHE_DIR/term-2"
 check "early TERM writes meta" test -s "$JOB/meta.json"
+
+# --- SIGKILL: no meta.json, the watcher must notice via <job>/pid
+FAKE_MODE=sleep bash "$DELEGATE" --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md" --id kill-1 >/dev/null 2>&1 &
+PID=$!
+sleep 2
+JOB="$DELEGATE_CACHE_DIR/kill-1"
+check "pid file holds delegate.sh's pid" test "$(cat "$JOB/pid" 2>/dev/null)" = "$PID"
+kill -KILL "$PID"; wait "$PID" 2>/dev/null
+kill -TERM "$(cat "$FAKE_LOG/pid")" 2>/dev/null   # the orphaned fake claude
+WOUT="$(perl -e 'alarm 10; exec @ARGV' bash "$HERE/../scripts/watch.sh" "$JOB")"; wcode=$?
+check "watch stops after SIGKILL (exit 1, not timeout)" test "$wcode" -eq 1
+check "watch says the job process is gone" grep -qF 'job process is gone without meta.json' <<<"$WOUT"
 
 rm -rf "$TMP"
 exit $fail

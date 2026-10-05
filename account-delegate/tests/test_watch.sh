@@ -3,7 +3,8 @@
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$HERE/../scripts"
 FIX="$HERE/fixtures/events.jsonl"
-export LC_ALL=en_US.UTF-8  # character counts below assume UTF-8
+# character counts below assume a UTF-8 locale; en_US.UTF-8 is not installed everywhere (Linux)
+if locale -a 2>/dev/null | grep -qiE '^en_US\.utf-?8$'; then export LC_ALL=en_US.UTF-8; else export LC_ALL=C.UTF-8; fi
 fail=0
 check() { # $1 = description, then a command that must succeed
   local d="$1"; shift
@@ -38,5 +39,20 @@ printf '%s' '{"exit_code":143,"is_error":true,"subtype":null,"num_turns":null,"t
 WOUT="$(perl -e 'alarm 10; exec @ARGV' bash "$SCRIPTS/watch.sh" "$JOB")"; wcode=$?
 check "watch exits when the job died before any events" test "$wcode" -eq 0
 check "watch summary handles missing fields" grep -qF 'job finished · exit 143 · error: true' <<<"$WOUT"
+rm -rf "$JOB"
+
+JOB="$(mktemp -d)"
+sleep 30 & DEAD=$!; echo "$DEAD" > "$JOB/pid"; kill "$DEAD"; wait "$DEAD" 2>/dev/null
+cp "$FIX" "$JOB/events.jsonl"
+WOUT="$(perl -e 'alarm 10; exec @ARGV' bash "$SCRIPTS/watch.sh" "$JOB")"; wcode=$?
+check "watch exits 1 when the job process is gone without meta.json" test "$wcode" -eq 1
+check "watch explains the missing meta.json" grep -qF 'job process is gone without meta.json' <<<"$WOUT"
+check "watch still renders the events it had" grep -qF '→ Read /tmp/proj/a.kt' <<<"$WOUT"
+
+JOB="$(mktemp -d)"
+( sleep 1; printf '%s' '{"exit_code":0,"is_error":false}' > "$JOB/meta.json" ) &
+echo $$ > "$JOB/pid"   # a live pid: keep waiting for meta.json
+WOUT="$(perl -e 'alarm 10; exec @ARGV' bash "$SCRIPTS/watch.sh" "$JOB")"; wcode=$?
+check "watch keeps waiting while the job process is alive" test "$wcode" -eq 0
 rm -rf "$JOB"
 exit $fail

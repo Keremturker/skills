@@ -33,12 +33,15 @@ check "agent runs in the worktree" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$JOB/w
 check "permission mode acceptEdits" bash -c 'grep -A1 -xF -- --permission-mode "$1" | tail -n 1 | grep -qx acceptEdits' _ "$FAKE_LOG/args"
 check "no disallowed tools in write mode" bash -c '! grep -qxF -- --disallowedTools "$1"' _ "$FAKE_LOG/args"
 check "report says not to commit" bash -c 'grep -qF "Do not commit" "$1"' _ "$FAKE_LOG/args"
-check "branch delegate/w1 exists" git -C "$REPO" rev-parse -q --verify refs/heads/delegate/w1
+check "branch delegate/w1 exists" bash -c 'git -C "$1" rev-parse -q --verify refs/heads/delegate/w1 >/dev/null' _ "$REPO"
 check "change is committed on the branch" bash -c 'git -C "$1" show --name-only --format= delegate/w1 | grep -qx fake.txt' _ "$REPO"
 check "commit message" bash -c 'git -C "$1" log -1 --format=%s delegate/w1 | grep -qx "delegate: w1"' _ "$REPO"
 check "meta.commit is the branch tip" test "$(meta .commit)" = "$(git -C "$REPO" rev-parse delegate/w1)"
 check "meta.branch" test "$(meta .branch)" = delegate/w1
 check "meta.commit_failed false" test "$(meta .commit_failed)" = false
+check "meta.start_branch is the user's branch" test "$(meta .start_branch)" = "$(git -C "$REPO" symbolic-ref --short HEAD)"
+check "job dir is private (umask 077)" bash -c 'ls -ld "$1" | grep -q "^drwx------"' _ "$JOB"
+check "meta.json is private" bash -c 'ls -l "$1/meta.json" | grep -q "^-rw-------"' _ "$JOB"
 check "user's working tree untouched" test ! -e "$REPO/fake.txt"
 check "user's uncommitted file still there" test -f "$REPO/uncommitted.txt"
 check "uncommitted changes are not visible to the agent" test ! -e "$JOB/worktree/uncommitted.txt"
@@ -68,11 +71,40 @@ check "worktree add failure: result.md mentions worktree" grep -qi worktree "$JO
 
 printf '#!/bin/sh\nexit 1\n' > "$REPO/.git/hooks/pre-commit"; chmod +x "$REPO/.git/hooks/pre-commit"
 FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w7
+check "repo hooks do not run during collection: exits 0" test "$CODE" -eq 0
+check "repo hooks do not run during collection: committed" test "$(meta .commit)" = "$(git -C "$REPO" rev-parse delegate/w7)"
+rm -f "$REPO/.git/hooks/pre-commit"
+
+FAKE_MODE=lock_index run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w8
 check "commit failure: exits 0" test "$CODE" -eq 0
 check "commit failure: meta.commit_failed true" test "$(meta .commit_failed)" = true
 check "commit failure: meta.commit null" test "$(meta .commit)" = null
 check "commit failure: change left in the worktree" test -f "$JOB/worktree/fake.txt"
-rm -f "$REPO/.git/hooks/pre-commit"
+rm -f "$(git -C "$JOB/worktree" rev-parse --absolute-git-dir)/index.lock"
+
+git -C "$REPO" checkout -q --detach
+FAKE_MODE=ok run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w9
+check "detached HEAD: meta.start_branch null" test "$(meta .start_branch)" = null
+git -C "$REPO" checkout -q -
+
+# --- agent-controlled git config must not run during collection
+HREPO="$TMP/hooked"; mkdir -p "$HREPO/.hooks"
+printf '#!/bin/sh\nexit 0\n' > "$HREPO/.hooks/pre-commit"; chmod +x "$HREPO/.hooks/pre-commit"
+git -C "$HREPO" init -q && echo base > "$HREPO/README" && git -C "$HREPO" add . \
+  && git -C "$HREPO" commit -qm base && git -C "$HREPO" config core.hooksPath .hooks
+FAKE_MODE=evil_hook run --mode write --cwd "$HREPO" --brief "$TMP/brief.md" --id h1
+check "tracked hook edited by the agent does not run" test ! -e "$FAKE_LOG/hook-ran"
+check "tracked hook: change still committed" bash -c 'git -C "$1" show --name-only --format= delegate/h1 | grep -qx fake.txt' _ "$HREPO"
+check "tracked hook: meta.commit is the branch tip" test "$(meta .commit)" = "$(git -C "$HREPO" rev-parse delegate/h1)"
+
+FAKE_MODE=evil_gitfile run --mode write --cwd "$HREPO" --brief "$TMP/brief.md" --id h2
+check "rewritten .git: fsmonitor of the agent's git dir does not run" test ! -e "$FAKE_LOG/fsmonitor-ran"
+check "rewritten .git: exits 0" test "$CODE" -eq 0
+check "rewritten .git: meta.commit_failed true" test "$(meta .commit_failed)" = true
+check "rewritten .git: meta.commit null" test "$(meta .commit)" = null
+check "rewritten .git: branch still at base" test "$(git -C "$HREPO" rev-parse delegate/h2)" = "$(git -C "$HREPO" rev-parse HEAD)"
+check "rewritten .git: worktree left in place" test -f "$JOB/worktree/fake.txt"
+check "rewritten .git: stderr.log explains" grep -q '\.git' "$JOB/stderr.log"
 
 rm -rf "$TMP"
 exit $fail

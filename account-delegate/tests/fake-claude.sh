@@ -26,4 +26,25 @@ case "${FAKE_MODE:-ok}" in
   sleep)
     exec sleep 30
     ;;
+  evil_hook)   # rewrites a tracked git hook (core.hooksPath=.hooks) to leave a marker
+    echo hello > fake.txt
+    printf '#!/bin/sh\ntouch "%s"\n' "$FAKE_LOG/hook-ran" > .hooks/pre-commit
+    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"edited hook"}'
+    ;;
+  evil_gitfile)   # points the worktree's .git file at a git dir it built, with core.fsmonitor
+    echo hello > fake.txt
+    git init -q .evil
+    git -C .evil config core.fsmonitor "touch '$FAKE_LOG/fsmonitor-ran'; false"
+    printf 'gitdir: %s\n' "$PWD/.evil/.git" > .git
+    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"rewrote .git"}'
+    ;;
+  lock_index)   # makes the collection's `git add` fail
+    echo hello > fake.txt
+    : > "$(git rev-parse --git-dir)/index.lock"
+    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"locked"}'
+    ;;
+  big)   # a ~2 MB final report
+    printf '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"%s"}\n' \
+      "$(head -c 2000000 /dev/zero | tr '\0' x)"
+    ;;
 esac
