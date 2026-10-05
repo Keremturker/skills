@@ -18,8 +18,22 @@ with `/<skill-name>`.
 | Skill | What it does |
 |---|---|
 | [`cmp-new-project`](./cmp-new-project) | Generate a Compose Multiplatform (Kotlin Multiplatform) project from the terminal via the [cmpose.dev](https://cmpose.dev) API — the chat equivalent of the cmpose.dev web wizard. |
+| [`cmp-feature`](./cmp-feature) | Add a screen, feature module or data source to a generated app — the contract, domain, data and presentation layers, ViewModel, navigation destination and Koin wiring. |
+| [`cmp-design-to-code`](./cmp-design-to-code) | Build or adjust UI from a provided design (exported boards, mockup or screenshot) by measuring it, mapping every value to a theme token and checking the result against the design. |
+| [`cmp-code-rules`](./cmp-code-rules) | Rules for every Kotlin change in a generated project — layering, visibility, Multiplatform limits, Compose state, Koin annotations, resources, accessibility — plus a self-review checklist. |
+| [`cmp-testing`](./cmp-testing) | Add or fix unit tests for ViewModels, use cases, repositories and mappers, and repair a test gate that is red, counts zero tests or hangs. |
+| [`cmp-maestro`](./cmp-maestro) | Write or repair Maestro flows, including the walkthrough used to record the demo video on Android and iOS, and add the test tags they select by. |
+| [`cmp-detekt`](./cmp-detekt) | Run detekt in projects that have the detekt gate, auto-correct formatting first, then fix the remaining findings at their cause without suppressions, baselines or config changes. |
+| [`cmp-verify`](./cmp-verify) | Run the finish gates (Android build, iOS simulator compile, detekt, tests) in order and fix the common Kotlin Multiplatform, KSP, Koin and Compose resources failures. |
+| [`cmp-commit`](./cmp-commit) | On explicit request, split the work into atomic commits, run the finish gates and write Conventional Commits messages — committing only, never pushing unless asked. |
 | [`cmp-matrix-test`](./cmp-matrix-test) | Run the cmpose.dev generator's release matrix (every variant built and launched as a release build on an Android emulator and an iOS simulator) through the backend's smoke gate, and report with screenshots. Requires a cmpose.dev backend checkout. |
 | [`account-delegate`](./account-delegate) | Offer to hand a self-contained job to a second Claude Code account on the same machine (headless, live in a side cmux pane) and bring its report — or a worktree branch to merge — back to your main session. |
+
+[`compass-kit`](./compass-kit) is not a skill but a kit that Compass installs into every project
+it generates. Its `kit.json` lists the skills it ships — `cmp-code-rules`, `cmp-feature`,
+`cmp-design-to-code`, `cmp-maestro`, `cmp-testing`, `cmp-verify`, `cmp-commit` and, for projects
+with detekt, `cmp-detekt` — together with the finish gates those skills run. `cmp-matrix-test` also
+runs detekt with the kit's `detekt.yml`. See [compass-kit](#compass-kit) below for its contents.
 
 ## Install
 
