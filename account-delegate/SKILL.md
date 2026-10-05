@@ -211,6 +211,14 @@ Yes covers every task and fix round of this plan. No → `superpowers:subagent-d
 plan file path, base, and one line per task — status (`pending` / `running` / `done` /
 `stopped`), job numbers, session id, fix rounds, cost. Update it after every job.
 
+**Git in the plan worktree.** The worktree is a tree the second account controlled: never run
+plain `git` (not even `git status`) inside `<PLAN_DIR>/worktree`, and never `git -C` it. Use the
+git dir pinned in `PLAN_DIR/plan.json` (`gitdir`), called `<pgit>` below:
+`git --git-dir=<plan.json gitdir> --work-tree=<PLAN_DIR>/worktree -c core.hooksPath=/dev/null -c core.fsmonitor=false`.
+Safe status: `<pgit> status --ignore-submodules=all` (diff the same way, with
+`--ignore-submodules=all`). Section 5's `<JOB_DIR>/worktree` does not exist in plan mode; the
+worktree is always `<PLAN_DIR>/worktree`.
+
 ### Per task
 
 1. **Brief** (scratchpad file, user's language): the task's text copied **verbatim** from the
@@ -228,11 +236,13 @@ plan file path, base, and one line per task — status (`pending` / `running` / 
    `PLAN_DIR/worktree` and branch `delegate/<plan id>`, plan id = basename of `PLAN_DIR`); every
    later job must omit it and pass the same `--cwd`. Exit 2 with no `JOB_DIR=` is a refusal
    (bad flags, held lock, tampered `.git`, worktree not on the plan branch, uncommitted changes
-   in the plan worktree): show the message, do not retry blindly.
+   in the plan worktree): show the message, do not retry blindly. For uncommitted changes, show
+   `<pgit> status --ignore-submodules=all` (see Setup).
 3. **Review** (this session):
    - Read `<JOB_DIR>/meta.json`; errors and denials → *Stop and ask* below.
-   - `git -C <PLAN_DIR>/worktree diff --stat <parent_commit>..<commit>`, then read only the
-     relevant hunks (`git -C <PLAN_DIR>/worktree diff <parent_commit>..<commit> -- <paths>`).
+   - `git -C <repo> diff --stat <parent_commit>..<commit>`, then read only the relevant hunks
+     (`git -C <repo> diff <parent_commit>..<commit> -- <paths>`). Use the main repo, never
+     `-C <PLAN_DIR>/worktree`: git must not find its git dir through the agent's `.git` file.
      `commit` null with `commit_failed` false means the job changed nothing.
    - Spec compliance first (everything the task asked, nothing more), then code quality.
    - **Safety gate:** if the task's diff touches build, hook, CI or script files
@@ -241,10 +251,22 @@ plan file path, base, and one line per task — status (`pending` / `running` / 
      `.gitlab-ci.yml`, ...), show those hunks in full and get the user's yes **before** running
      any build or test there. The plan-level yes does not cover this.
    - Run the task's test/verification commands inside `<PLAN_DIR>/worktree`.
+   - Then check the worktree is clean (`<pgit> status --ignore-submodules=all`); otherwise the
+     next job refuses with "uncommitted changes". If this session changed files on purpose (a fix
+     made here, or "you finish it here" / "you do the task here"), show
+     `<pgit> diff --ignore-submodules=all` and commit them: first confirm
+     `<PLAN_DIR>/worktree/.git` is unchanged (`od -An -tx1 < <PLAN_DIR>/worktree/.git | tr -d ' \n'`
+     equals `plan.json.gitfile_hex`; if not, stop as for a changed `.git`), then from inside
+     `<PLAN_DIR>/worktree` run `<pgit> add -- <the paths you changed>` (not `add -A`: it runs git
+     inside nested repos) and `<pgit> commit --no-verify -m "delegate(<plan id>): Task <n> (main session)"`.
+     Build/test output nobody wants: remove it only with the user's yes.
 4. **Fix round** if anything is wrong: write the findings as a brief and run the same command
    with `--resume <session_id of this task's last job>` and `--title "Task <n> fix <k>"` (no
    `--base`). Then review again. At most 3 fix rounds per task.
 5. **Done:** update `progress.md`, tell the user one line (task, rounds, cost), next task.
+
+Section 5's per-job cleanup (worktree remove, `branch -d` when `commit` is null) does not apply
+in plan mode: never remove the plan worktree or branch before the end of the plan.
 
 ### Stop and ask
 
@@ -253,11 +275,17 @@ plan file path, base, and one line per task — status (`pending` / `running` / 
 - `permission_denials` or a "Blocked" section → list the commands, ask which to run here, run
   only those.
 - Job failure (`is_error`, `error_max_turns`, empty `result.md`) → last ~20 formatted events and
-  the end of `stderr.log`; options: retry / you do the task here / stop the plan.
+  the end of `stderr.log`; options: retry / you do the task here / stop the plan. A failed or
+  killed job may already have committed partial work (`meta.commit` non-null, or the branch tip
+  moved past `parent_commit`): review that commit before retrying. Retry: if `PLAN_DIR/plan.json`
+  exists, omit `--base`, even for task 1; if it does not (the first job failed before the plan
+  was created, e.g. branch `delegate/<plan id>` already exists — see `result.md`), fix the cause
+  and retry with `--base` on the same `PLAN_DIR`.
 - `.git` changed or removed (exit 2 naming `.git`, or `stderr.log` says so) → stop the plan, run
   no git command inside the worktree, leave cleanup to the user as in section 5.
-- `commit_failed` true → the worktree holds the only copy; touch nothing, show, ask. The next
-  plan job refuses to start until the worktree is clean.
+- `commit_failed` true → the worktree holds the only copy; touch nothing, show the end of
+  `stderr.log` and `<pgit> status --ignore-submodules=all` (never plain `git status` there), ask.
+  The next plan job refuses to start until the worktree is clean.
 - Safety gate (above).
 
 ### End of plan

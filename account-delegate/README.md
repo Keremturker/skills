@@ -19,7 +19,10 @@ Two modes:
   you merge). That commit uses the git dir recorded before the run, never the worktree's
   `.git` file; if the agent changed that file, nothing is committed (`commit_failed: true`,
   explained in `stderr.log`) and the worktree is left as is. Clean/smudge filters your own git
-  config defines (e.g. git-lfs) still run on the agent's files, as in any `git add`.
+  config defines (e.g. git-lfs) still run on the agent's files, as in any `git add`. Git never
+  runs inside nested repos: a gitlink already in the index (a submodule of the base, a nested
+  repo an earlier plan job committed) is left out of the collection, so changes inside it are
+  not collected; a new nested repo is committed as a gitlink.
 
 ## Plan mode
 
@@ -34,7 +37,12 @@ gets `<plan dir>/jobs/<n>/` (a normal job dir) and adds at most one commit,
 file is unchanged, that the worktree is on the plan branch and that it has no uncommitted
 changes; otherwise it exits 2. `--resume` continues the second account's session of an earlier
 job of the same plan (any other session id: exit 2). `<plan dir>/lock` allows one job at a time;
-a lock whose process is gone is taken over. The plan worktree is never removed by the script.
+a lock whose process is gone is taken over. A lock dir with no or an invalid pid (the process was
+killed between creating it and writing the pid) is never taken over: check that no job is running,
+then `rm -rf <plan dir>/lock`. If `delegate.sh` was SIGKILLed, its `claude` child may still be
+running; check for it before taking over. The plan worktree is never removed by the script. A
+plan dir without `plan.json` may hold other files (e.g. `progress.md`, the jobs of a first call
+that failed) and is refused only if it has a `worktree` or `plan.json.tmp`.
 `meta.json` gains `plan_id`, `plan_dir`, `job_n`, `title`, `resumed_from` and `parent_commit`
 (the branch tip before the job), null outside plan mode. `--plan` is write mode only and cannot
 be combined with `--id`; `--title` and `--resume` need `--plan`.
