@@ -86,8 +86,16 @@ case "$MODE" in
     REPORT="$REPORT This is a read-only job: do not try to change any file."
     ;;
   write)
-    # Filled in by Task 3.
-    echo "write mode not implemented yet" > "$JOB/result.md"; write_meta 2; exit 1
+    BRANCH="delegate/$ID"
+    WORKTREE="$JOB/worktree"
+    if ! git -C "$TOP" worktree add -q -b "$BRANCH" "$WORKTREE" HEAD >> "$JOB/stderr.log" 2>&1; then
+      echo "Could not create the git worktree; see stderr.log." > "$JOB/result.md"
+      BRANCH="" WORKTREE=""
+      write_meta 1; exit 1
+    fi
+    WORKDIR="$WORKTREE/$PREFIX"
+    FLAGS=(--permission-mode acceptEdits)
+    REPORT="$REPORT Work only inside the current directory tree. Do not commit, push or create branches: your file changes are collected and committed for you after you finish."
     ;;
 esac
 
@@ -113,6 +121,16 @@ if [ -n "$RESULT_LINE" ]; then
   jq -r '.result // ""' <<<"$RESULT_LINE" > "$JOB/result.md"
 else
   : > "$JOB/result.md"
+fi
+
+if [ "$MODE" = write ]; then
+  if git -C "$WORKTREE" add -A >> "$JOB/stderr.log" 2>&1 && ! git -C "$WORKTREE" diff --cached --quiet; then
+    if git -C "$WORKTREE" commit -q -m "delegate: $ID" >> "$JOB/stderr.log" 2>&1; then
+      COMMIT="$(git -C "$WORKTREE" rev-parse HEAD)"
+    else
+      COMMIT_FAILED=true
+    fi
+  fi
 fi
 
 write_meta "$CODE"
