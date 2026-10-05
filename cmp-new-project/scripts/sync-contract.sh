@@ -59,7 +59,8 @@ const keywordMap = {
   multiLang:        ['multi-language', 'multilanguage', 'multi language', 'i18n', 'l10n', 'localization', 'localisation', 'çoklu dil', 'yerelleştirme', 'dil desteği'],
   dataStore:        ['datastore', 'data store', 'preferences', 'persistence', 'local storage', 'yerel depolama', 'saklama'],
   // room: a local database / offline storage of structured data (DataStore is for preferences).
-  room:             ['room database', 'sqlite', 'local database', 'offline storage', 'offline database', 'veritabanı', 'yerel veritabanı', 'çevrimdışı depolama'],
+  // 'database' and 'veritabanı' both map here (TR/EN symmetric); no bare 'db' (substring of e.g. 'dbus', 'mongodb').
+  room:             ['room database', 'sqlite', 'local database', 'offline storage', 'offline database', 'database', 'veritabanı', 'yerel veritabanı', 'çevrimdışı depolama'],
   detekt:           ['detekt', 'static analysis', 'lint', 'kod analizi', 'statik analiz'],
   // purchases/ads: explicit monetization intent ONLY. Naming a featuresConfig key switches the
   // template to blank, so ordinary app descriptions must not match: no 'premium', 'subscription',
