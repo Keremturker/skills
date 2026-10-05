@@ -7,7 +7,8 @@ pwd -P > "$FAKE_LOG/pwd"
 ls -A > "$FAKE_LOG/ls"
 printf '%s\n' "${CLAUDE_CONFIG_DIR:-}" > "$FAKE_LOG/config"
 env > "$FAKE_LOG/env"
-echo '{"type":"system","subtype":"init","model":"fake","cwd":"x"}'
+PM=""; prev=""; for a in "$@"; do [ "$prev" = --permission-mode ] && PM="$a"; prev="$a"; done
+printf '{"type":"system","subtype":"init","model":"fake","cwd":"x","permissionMode":"%s"}\n' "${FAKE_REPORTED_MODE:-$PM}"
 case "${FAKE_MODE:-ok}" in
   ok)
     echo '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"a"}}]}}'

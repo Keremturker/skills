@@ -31,7 +31,9 @@ FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$
 check "write run exits 0" test "$CODE" -eq 0
 check "worktree lives in the job dir" test -d "$JOB/worktree"
 check "agent runs in the worktree" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$JOB/worktree" && pwd -P)"
-check "permission mode acceptEdits" bash -c 'grep -A1 -xF -- --permission-mode "$1" | tail -n 1 | grep -qx acceptEdits' _ "$FAKE_LOG/args"
+check "permission mode defaults to auto" bash -c 'grep -A1 -xF -- --permission-mode "$1" | tail -n 1 | grep -qx auto' _ "$FAKE_LOG/args"
+check "meta.permission_mode is the mode the run reported" test "$(meta .permission_mode)" = auto
+check "report allows shell commands only inside the tree" bash -c 'grep -qF "no package installs" "$1"' _ "$FAKE_LOG/args"
 check "no disallowed tools in write mode" bash -c '! grep -qxF -- --disallowedTools "$1"' _ "$FAKE_LOG/args"
 check "report says not to commit" bash -c 'grep -qF "Do not commit" "$1"' _ "$FAKE_LOG/args"
 check "branch delegate/w1 exists" bash -c 'git -C "$1" rev-parse -q --verify refs/heads/delegate/w1 >/dev/null' _ "$REPO"
@@ -175,6 +177,18 @@ check "rewritten .git: meta.commit null" test "$(meta .commit)" = null
 check "rewritten .git: branch still at base" test "$(git -C "$HREPO" rev-parse delegate/h2)" = "$(git -C "$HREPO" rev-parse HEAD)"
 check "rewritten .git: worktree left in place" test -f "$JOB/worktree/fake.txt"
 check "rewritten .git: stderr.log explains" grep -q '\.git' "$JOB/stderr.log"
+
+# --- DELEGATE_PERMISSION_MODE
+DELEGATE_PERMISSION_MODE=acceptEdits FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id pm1
+check "DELEGATE_PERMISSION_MODE=acceptEdits is honoured" bash -c 'test "$1" -eq 0 && grep -A1 -xF -- --permission-mode "$2" | tail -n 1 | grep -qx acceptEdits' _ "$CODE" "$FAKE_LOG/args"
+for m in bypassPermissions dontAsk manual plan default nonsense; do
+  DELEGATE_PERMISSION_MODE=$m run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id "pm-$m"
+  check "DELEGATE_PERMISSION_MODE=$m is refused with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2"' _ "$CODE" "$JOB"
+done
+DELEGATE_PERMISSION_MODE=auto FAKE_REPORTED_MODE=acceptEdits FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id pm2
+check "meta.permission_mode shows a mode the account fell back to" test "$(meta .permission_mode)" = acceptEdits
+DELEGATE_PERMISSION_MODE=acceptEdits run --mode ro --cwd "$TMP/plain" --brief "$TMP/brief.md" --id pm3
+check "ro mode ignores DELEGATE_PERMISSION_MODE" bash -c 'grep -A1 -xF -- --permission-mode "$1" | tail -n 1 | grep -qx default' _ "$FAKE_LOG/args"
 
 rm -rf "$TMP"
 exit $fail

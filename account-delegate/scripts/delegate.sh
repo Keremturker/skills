@@ -114,6 +114,10 @@ fi
 CACHE="${DELEGATE_CACHE_DIR:-$HOME/.cache/claude-delegate}"
 MAX_TURNS="${DELEGATE_MAX_TURNS:-40}"
 case "$MAX_TURNS" in ''|*[!0-9]*|0) die "DELEGATE_MAX_TURNS must be a positive integer" ;; esac
+# write mode only: auto lets the second account's own classifier approve safe shell commands;
+# acceptEdits allows edits and denies every shell command. Nothing that skips permission checks.
+PERM_MODE="${DELEGATE_PERMISSION_MODE:-auto}"
+case "$PERM_MODE" in auto|acceptEdits) ;; *) die "DELEGATE_PERMISSION_MODE must be auto or acceptEdits: $PERM_MODE" ;; esac
 
 PLAN_EXISTS=0 N="" PARENT_COMMIT="" WORKTREE="" BRANCH="" GITDIR="" GITFILE_HEX=""
 if [ -n "$PLAN" ] && [ -f "$PLAN/plan.json" ]; then
@@ -194,7 +198,7 @@ trap on_signal TERM INT HUP
 echo "JOB_DIR=$JOB"
 STARTED="$(now)"
 
-WORKDIR="$CWD" COMMIT="" COMMIT_FAILED=false RESULT_FILE=/dev/null
+WORKDIR="$CWD" COMMIT="" COMMIT_FAILED=false RESULT_FILE=/dev/null RAN_MODE=""
 
 write_meta() { # $1 = exit code of the claude run
   # The result line goes in by file: it can be megabytes, more than fits in an argument.
@@ -204,7 +208,7 @@ write_meta() { # $1 = exit code of the claude run
     --argjson base_given "$([ "$BASE_GIVEN" -eq 1 ] && echo true || echo false)" \
     --argjson commit_failed "$COMMIT_FAILED" --argjson exit_code "$1" --slurpfile rs "$RESULT_FILE" \
     --arg plan_id "$PLAN_ID" --arg plan_dir "$PLAN" --arg job_n "$N" --arg title "$TITLE" \
-    --arg resumed_from "$RESUME" --arg parent_commit "$PARENT_COMMIT" --arg gitdir "$([ "$MODE" = write ] && echo "$GITDIR")" \
+    --arg resumed_from "$RESUME" --arg parent_commit "$PARENT_COMMIT" --arg permission_mode "$RAN_MODE" --arg gitdir "$([ "$MODE" = write ] && echo "$GITDIR")" \
     --arg started "$STARTED" --arg finished "$(now)" '
     def opt: if . == "" then null else . end;
     ($rs[0] // null) as $r |
@@ -215,7 +219,7 @@ write_meta() { # $1 = exit code of the claude run
      commit_failed: $commit_failed, exit_code: $exit_code,
      plan_id: ($plan_id | opt), plan_dir: ($plan_dir | opt),
      job_n: (if $job_n == "" then null else ($job_n | tonumber) end),
-     title: ($title | opt), resumed_from: ($resumed_from | opt), parent_commit: ($parent_commit | opt), gitdir: ($gitdir | opt),
+     title: ($title | opt), resumed_from: ($resumed_from | opt), parent_commit: ($parent_commit | opt), permission_mode: ($permission_mode | opt), gitdir: ($gitdir | opt),
      is_error: (($r == null) or ($r.is_error == true) or ($exit_code != 0)),
      subtype: $r.subtype, num_turns: $r.num_turns, total_cost_usd: $r.total_cost_usd,
      permission_denials: ($r.permission_denials // []), session_id: $r.session_id,
@@ -286,9 +290,9 @@ case "$MODE" in
       fi
     fi
     WORKDIR="$WORKTREE/$PREFIX"
-    FLAGS=(--permission-mode acceptEdits)
+    FLAGS=(--permission-mode "$PERM_MODE")
     [ -z "$RESUME" ] || FLAGS+=(--resume "$RESUME")
-    REPORT="$REPORT Work only inside the current directory tree. Do not commit, push or create branches: your file changes are collected and committed for you after you finish."
+    REPORT="$REPORT Work only inside the current directory tree. Do not commit, push or create branches: your file changes are collected and committed for you after you finish. Shell commands, if allowed, only inside the current directory tree: no package installs, no network calls, no git commands that change history or config."
     ;;
 esac
 
@@ -324,6 +328,7 @@ trap '' TERM INT HUP   # stay alive until meta.json is written
 
 jq -R -c 'fromjson? | select(.type == "result")' "$JOB/events.jsonl" | tail -n 1 > "$JOB/result-line.json"
 RESULT_FILE="$JOB/result-line.json"
+RAN_MODE="$(jq -R -r 'fromjson? | select(.type == "system" and .subtype == "init") | .permissionMode // empty' "$JOB/events.jsonl" | head -n 1)"
 jq -r '.result // ""' "$RESULT_FILE" > "$JOB/result.md"   # empty when there is no result line
 
 # Throwaway ro worktree: removed while signals are still ignored, before meta is written.
