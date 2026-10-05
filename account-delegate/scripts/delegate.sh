@@ -30,12 +30,22 @@ wt_tampered() {   # true when the worktree or its .git file is not what `worktre
 # Residual: clean/smudge filters named in the tree's .gitattributes run if the user's own git
 # config defines them (e.g. git-lfs). Those are programs the user installed, fed the agent's
 # file contents, as in any `git add` of untrusted files; overriding them would corrupt LFS
-# repos. Nested repos the agent creates are added as gitlinks; add/commit do not run their
-# config (commit does not recurse into them). The user's own hooks still run at merge time.
+# repos. Nested repos are never entered: a gitlink already in the index (a submodule of the
+# base, or a nested repo an earlier plan job committed) is left out of `add` and status uses
+# --ignore-submodules=all, since both would run `git status` inside it and so its own config
+# (filters) as the user; a new nested repo is added as a gitlink without being entered. Changes
+# inside an existing gitlink are therefore not collected. The user's own hooks still run at merge time.
 cgit() {
   git --git-dir="$GITDIR" --work-tree="$WORKTREE" -c core.hooksPath=/dev/null \
       -c core.fsmonitor=false -c core.untrackedCache=false -c commit.gpgsign=false \
       -c maintenance.auto=false "$@"
+}
+collect_add() {   # add -A in the worktree, leaving out the gitlinks already in the index
+  cd "$WORKTREE" && cgit ls-files -s -z > "$JOB/index-entries" || return 1
+  local e ps=(.)
+  while IFS= read -r -d '' e; do [ "${e%% *}" != 160000 ] || ps+=(":(exclude,literal)${e#*$'\t'}"); done < "$JOB/index-entries"
+  rm -f "$JOB/index-entries"
+  cgit add -A -- "${ps[@]}"
 }
 pj() { jq -r "$1 // empty" "$PLAN/plan.json"; }   # one field of plan.json ("" when missing/null)
 LOCKED=0
@@ -140,7 +150,9 @@ if [ -n "$PLAN" ]; then
     ! wt_tampered || die "$WORKTREE/.git was changed or removed; run no git command inside it (see the skill's cleanup rules)"
     [ "$(cgit symbolic-ref -q HEAD)" = "refs/heads/$BRANCH" ] || die "the plan worktree is not on $BRANCH (detached or switched): $WORKTREE"
     PARENT_COMMIT="$(cgit rev-parse -q --verify 'HEAD^{commit}')" || die "cannot read the plan branch tip: $BRANCH"
-    [ -z "$(cd "$WORKTREE" && cgit status --porcelain)" ] || die "the plan worktree has uncommitted changes (a failed collection?); resolve them first: $WORKTREE"
+    # status would recurse into nested repos (gitlinks) and run their own config (filters) as the user
+    st="$(cd "$WORKTREE" && cgit status --porcelain --ignore-submodules=all)" || die "cannot check the plan worktree for changes: $WORKTREE"
+    [ -z "$st" ] || die "the plan worktree has uncommitted changes (a failed collection?); inspect them safely (see the skill) and resolve them first: $WORKTREE"
     if [ -n "$RESUME" ]; then
       cat "$PLAN"/jobs/*/meta.json 2>/dev/null | jq -r '.session_id // empty' 2>/dev/null | grep -qxF -- "$RESUME" \
         || die "--resume: session $RESUME does not belong to plan $PLAN_ID"
@@ -197,7 +209,7 @@ write_meta() { # $1 = exit code of the claude run
      permission_denials: ($r.permission_denials // []), session_id: $r.session_id,
      started_at: $started, finished_at: $finished}' > "$JOB/meta.json.tmp" 2>> "$JOB/stderr.log"; then
     # Fallback so watch.sh and the caller always get a meta.json. ID is [A-Za-z0-9._-],
-    # MODE is ro|write, BRANCH is delegate/<ID> and COMMIT is hex, so no escaping is needed.
+    # MODE is ro|write, BRANCH is delegate/<ID> or delegate/<plan id> and COMMIT is hex, so no escaping is needed.
     local b=null c=null bc=null bs=null w=null
     # base and worktree are free text: include them only when they need no JSON escaping
     case "$BASE" in ''|*[!A-Za-z0-9._/@+-]*) ;; *) [ "$BASE_GIVEN" -eq 1 ] && bs="\"$BASE\"" ;; esac
@@ -306,7 +318,7 @@ if [ "$MODE" = write ]; then
   if wt_tampered; then
     COMMIT_FAILED=true
     echo "delegate: $WORKTREE/.git was changed or removed during the run; nothing was collected or committed. Do not run git inside the worktree (its .git may point at a git dir the agent built); inspect the files with plain tools." >> "$JOB/stderr.log"
-  elif ! (cd "$WORKTREE" && cgit add -A) >> "$JOB/stderr.log" 2>&1; then
+  elif ! (collect_add) >> "$JOB/stderr.log" 2>&1; then
     COMMIT_FAILED=true
   elif ! cgit diff --cached --quiet; then
     if [ -n "$PLAN" ]; then MSG="delegate($PLAN_ID): ${TITLE:-job $N}"; else MSG="delegate: $ID"; fi

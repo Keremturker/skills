@@ -168,5 +168,17 @@ check "crash releases lock" test ! -e "$PLAN/lock"
 FAKE_MODE=write FAKE_FILE=i.txt run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B"
 check "next job runs after a crash" test "$CODE" -eq 0
 
+# --- the pre-job dirty check must not run a nested repo's own config (filters) as the user
+NPLAN="$TMP/plans/p6"
+FAKE_MODE=nested_filter run --mode write --plan "$NPLAN" --cwd "$REPO" --brief "$B" --base "$MAIN"
+check "nested repo job is collected as a gitlink" bash -c 'test "$1" -eq 0 && git -C "$2" ls-tree delegate/p6 nested | grep -q "^160000 commit "' _ "$CODE" "$REPO"
+rm -f "$FAKE_LOG/filter-ran"
+touch -t 203001010000 "$NPLAN/worktree/nested/f"   # stat-dirty: a status inside nested would run the filter
+run --mode write --plan "$NPLAN" --cwd "$REPO" --brief "$B" --resume nope   # refused right after the dirty check
+check "pre-job check does not run the nested repo's filter" bash -c 'test "$1" -eq 2 && test ! -e "$2/filter-ran"' _ "$CODE" "$FAKE_LOG"
+FAKE_MODE=write FAKE_FILE=n.txt run --mode write --plan "$NPLAN" --cwd "$REPO" --brief "$B"
+check "collection does not run the nested repo's filter" test ! -e "$FAKE_LOG/filter-ran"
+check "job after a nested repo commits its change" bash -c 'test "$1" -eq 0 && test "$(git -C "$2" show --name-only --format= delegate/p6)" = n.txt' _ "$CODE" "$REPO"
+
 rm -rf "$TMP"
 exit $fail

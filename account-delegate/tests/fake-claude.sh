@@ -49,6 +49,12 @@ case "${FAKE_MODE:-ok}" in
     : > "$(git rev-parse --git-dir)/index.lock"
     echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"locked"}'
     ;;
+  nested_filter)   # a nested repo whose own config sets a clean filter that leaves a marker
+    mkdir nested && (cd nested && git init -q && echo a > f && echo '* filter=ev' > .gitattributes \
+      && git add -A && git -c user.name=x -c user.email=x@x commit -qm n \
+      && git config filter.ev.clean "touch '$FAKE_LOG/filter-ran'; cat")
+    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"nested repo"}'
+    ;;
   big)   # a ~2 MB final report
     printf '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"%s"}\n' \
       "$(head -c 2000000 /dev/zero | tr '\0' x)"
