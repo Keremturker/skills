@@ -1,0 +1,7 @@
+{"type":"system","subtype":"init","model":"fake-model","cwd":"/tmp/proj"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Looking at\nthe code"},{"type":"tool_use","name":"Read","input":{"file_path":"/tmp/proj/a.kt"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","is_error":true,"content":"Permission to use Bash has been denied."}]}}
+{"type":"assistant","message":{"content":[{"type":
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Grep","input":{"pattern":"TODO"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","is_error":false,"content":"ok"}]}}
+{"type":"result","subtype":"success","is_error":false,"num_turns":3,"total_cost_usd":0.42,"result":"Done."}
