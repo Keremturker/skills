@@ -38,6 +38,21 @@ cgit() {
       -c maintenance.auto=false "$@"
 }
 pj() { jq -r "$1 // empty" "$PLAN/plan.json"; }   # one field of plan.json ("" when missing/null)
+LOCKED=0
+take_lock() {   # one job at a time per plan; a lock whose pid is no longer running is taken over
+  if ! mkdir "$PLAN/lock" 2>/dev/null; then
+    local p; p="$(cat "$PLAN/lock/pid" 2>/dev/null)"
+    case "$p" in ''|*[!0-9]*) die "plan $PLAN_ID is locked ($PLAN/lock has no valid pid); another job may be running" ;; esac
+    ! kill -0 "$p" 2>/dev/null || die "another job (pid $p) is running in plan $PLAN_ID"
+    echo "delegate: took over a stale plan lock (pid $p)" >&2
+  fi
+  echo $$ > "$PLAN/lock/pid"; LOCKED=1
+}
+release_lock() {
+  [ "$LOCKED" -eq 1 ] && [ "$(cat "$PLAN/lock/pid" 2>/dev/null)" = "$$" ] && rm -f "$PLAN/lock/pid" && rmdir "$PLAN/lock" 2>/dev/null
+  return 0
+}
+trap release_lock EXIT
 
 MODE="" CWD="" BRIEF="" ID="" BASE="" BASE_GIVEN=0 PLAN="" PLAN_ID="" TITLE="" RESUME=""
 while [ $# -gt 0 ]; do
@@ -118,6 +133,7 @@ umask 077   # plan and job dirs hold briefs, reports and the worktree: private t
 if [ -n "$PLAN" ]; then
   mkdir -p "$PLAN" || die "cannot create $PLAN"
   PLAN="$(cd "$PLAN" && pwd -P)"
+  take_lock
   if [ "$PLAN_EXISTS" -eq 1 ]; then
     BRANCH="$(pj .branch)" WORKTREE="$PLAN/worktree" GITDIR="$(pj .gitdir)" GITFILE_HEX="$(pj .gitfile_hex)"
     [ -n "$BRANCH" ] && [ -n "$GITDIR" ] && [ -n "$GITFILE_HEX" ] || die "plan.json is incomplete: $PLAN"

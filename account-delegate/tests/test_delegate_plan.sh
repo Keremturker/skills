@@ -143,5 +143,30 @@ check "--resume without --plan exits 2" test "$CODE" -eq 2
 run --mode write --plan "$TMP/plans/p3" --cwd "$REPO" --brief "$B" --base "$MAIN" --resume sess-g
 check "--resume on a new plan exits 2" bash -c 'test "$1" -eq 2 && test ! -e "$2/plan.json"' _ "$CODE" "$TMP/plans/p3"
 
+# --- plan lock
+check "no lock left after earlier jobs" test ! -e "$PLAN/lock"
+N_BEFORE="$(njobs "$PLAN")"
+sleep 30 & HOLDER=$!
+mkdir "$PLAN/lock" && echo "$HOLDER" > "$PLAN/lock/pid"
+run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B"
+check "held lock exits 2" bash -c 'test "$1" -eq 2 && grep -qi "running" "$2"' _ "$CODE" "$TMP/err"
+check "held lock: no job dir" test "$(njobs "$PLAN")" = "$N_BEFORE"
+check "held lock is left alone" test "$(cat "$PLAN/lock/pid")" = "$HOLDER"
+kill "$HOLDER" 2>/dev/null; wait "$HOLDER" 2>/dev/null
+: > "$PLAN/lock/pid"
+run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B"
+check "lock with an empty pid exits 2" test "$CODE" -eq 2
+echo "$HOLDER" > "$PLAN/lock/pid"   # that process is gone now
+FAKE_MODE=ok run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B"
+check "stale lock is taken over" test "$CODE" -eq 0
+check "lock released after the job" test ! -e "$PLAN/lock"
+run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B" --base "$MAIN"
+check "lock released after a usage error" bash -c 'test "$1" -eq 2 && test ! -e "$2/lock"' _ "$CODE" "$PLAN"
+FAKE_MODE=crash run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B"
+check "crash: exits 1 with meta" bash -c 'test "$1" -eq 1 && test -s "$2/meta.json"' _ "$CODE" "$JOB"
+check "crash releases lock" test ! -e "$PLAN/lock"
+FAKE_MODE=write FAKE_FILE=i.txt run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B"
+check "next job runs after a crash" test "$CODE" -eq 0
+
 rm -rf "$TMP"
 exit $fail
