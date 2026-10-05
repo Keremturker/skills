@@ -206,6 +206,13 @@ usual execution-method question: ask once, e.g.
 
 Yes covers every task and fix round of this plan. No → `superpowers:subagent-driven-development`.
 
+**Split the plan before offering.** Mark each task in the plan as *second account* (code and
+docs edits) or *this session*: anything needing an emulator/simulator, network, package
+installs, push or publishing (smoke runs, UI tests such as Maestro, releases) always stays here.
+Only *second account* tasks are counted in the offer and delegated; run the others here in plan
+order. If those tasks span several repos, use one `PLAN_DIR` per repo (each with its own
+`--cwd`/`--base`) and name every repo and base in the offer.
+
 ### Setup
 
 `PLAN_DIR="${DELEGATE_CACHE_DIR:-$HOME/.cache/claude-delegate}/plans/<YYYYMMDD-HHMMSS>-<slug>"`
@@ -225,8 +232,10 @@ worktree is always `<PLAN_DIR>/worktree`.
 
 1. **Brief** (scratchpad file, user's language): the task's text copied **verbatim** from the
    plan (the plan file may not be committed on the base, so never just point at it); short
-   project context (repo, decisions, things not to touch); one line per finished task; "if you
-   cannot run a build or test command, list it under Blocked".
+   project context (repo, decisions, things not to touch); the rules from the project's rule
+   files (CLAUDE.md, AGENTS.md, style/convention docs) that apply to this task, copied in, since
+   the second account may not load them; one line per finished task; "if you cannot run a build
+   or test command, list it under Blocked".
 2. **Run** with `run_in_background: true`, then open the side pane as in section 4:
 
    ```bash
