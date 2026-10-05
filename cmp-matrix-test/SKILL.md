@@ -34,9 +34,10 @@ step 1 (`$CMP_BACKEND_DIR`):
     B=${CMP_BACKEND_DIR:?set CMP_BACKEND_DIR to your cmpose.dev backend checkout}
     node -e "console.table(require('$B/scripts/smoke/variants.js').map(v => ({ name: v.name, type: v.templateType, package: v.packageName, modules: (v.features || []).join(' '), featuresConfig: JSON.stringify(v.featuresConfig || 'showcase defaults') })))"
 
-Snapshot (project-hygiene release, `template-2026.09.30.2`): 7 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
-`BlankTheme`, `BlankLang` (these two came with the B release, for the blank shell's Theming and
-Multi-Language layers) and `BlankFull`. A full run has 109 checks, `--build-only` 57 (one of them: `release is minified (mapping.txt)`); one check asserts that the skill's `contractVersion` (read from `CMP_SKILLS_DIR`, default the sibling skills checkout) equals the backend's. On every variant with detekt the smoke runs detekt
+Snapshot (monetization release): 9 variants — `Showcase`, `ShowcaseMod`, `BlankMin`, `BlankNet`,
+`BlankTheme`, `BlankLang`, `BlankFull`, `BlankPurchases` and `BlankAds` (the last two came with the
+monetization release, for the in-app purchases and ads flags). A full run has 135 checks,
+`--build-only` 69 (the checks that do not need the emulator/simulator or a release run; one of them: `release is minified (mapping.txt)`); one check asserts that the skill's `contractVersion` (read from `CMP_SKILLS_DIR`, default the sibling skills checkout) equals the backend's. On every variant with detekt the smoke runs detekt
 twice: with the project's own config, then with compass-kit's (`detekt (compass-kit rules)`, the
 gate Compass applies). If the table or the final count differs, the backend changed: go
 by the backend and mention the difference in the report.
@@ -57,7 +58,7 @@ by the backend and mention the difference in the report.
 - "quick", "sadece build", "hızlı" → add `--build-only` (skips the emulator/simulator runs).
 - Nothing given → no arguments: the backend's pinned template, full run.
 
-Tell the user the expected duration (full ≈ 30–40 min, `--build-only` ≈ 5–10 min).
+Tell the user the expected duration (full ≈ 55–60 min, `--build-only` ≈ 5–10 min).
 
 A full run needs `ffmpeg` (the dark-screenshot check); without it the script stops with a
 `PREREQ:` line. `--build-only` does not need it.
