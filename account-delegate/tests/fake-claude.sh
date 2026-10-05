@@ -14,8 +14,9 @@ case "${FAKE_MODE:-ok}" in
     echo '{"type":"result","subtype":"success","is_error":false,"num_turns":2,"total_cost_usd":0.3,"session_id":"s1","permission_denials":[],"result":"## Done\nAll done."}'
     ;;
   write)
-    echo hello > fake.txt
-    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"total_cost_usd":0.1,"session_id":"s2","permission_denials":[],"result":"wrote fake.txt"}'
+    echo hello > "${FAKE_FILE:-fake.txt}"
+    printf '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"total_cost_usd":0.1,"session_id":"%s","permission_denials":[],"result":"wrote %s"}\n' \
+      "${FAKE_SESSION:-s2}" "${FAKE_FILE:-fake.txt}"
     ;;
   dirty_ro)   # leaves an untracked file, so `git worktree remove` refuses
     echo junk > junk.txt
@@ -47,6 +48,16 @@ case "${FAKE_MODE:-ok}" in
     echo hello > fake.txt
     : > "$(git rev-parse --git-dir)/index.lock"
     echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"locked"}'
+    ;;
+  nested_gone)   # replaces the nested repo committed by an earlier job with a plain file
+    rm -rf nested && echo plain > nested
+    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"nested gone"}'
+    ;;
+  nested_filter)   # a nested repo whose own config sets a clean filter that leaves a marker
+    mkdir nested && (cd nested && git init -q && echo a > f && echo '* filter=ev' > .gitattributes \
+      && git add -A && git -c user.name=x -c user.email=x@x commit -qm n \
+      && git config filter.ev.clean "touch '$FAKE_LOG/filter-ran'; cat")
+    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"nested repo"}'
     ;;
   big)   # a ~2 MB final report
     printf '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"%s"}\n' \
