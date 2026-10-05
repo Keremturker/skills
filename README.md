@@ -19,6 +19,7 @@ with `/<skill-name>`.
 |---|---|
 | [`cmp-new-project`](./cmp-new-project) | Generate a Compose Multiplatform (Kotlin Multiplatform) project from the terminal via the [cmpose.dev](https://cmpose.dev) API — the chat equivalent of the cmpose.dev web wizard. |
 | [`cmp-matrix-test`](./cmp-matrix-test) | Run the cmpose.dev generator's release matrix (every variant built and launched as a release build on an Android emulator and an iOS simulator) through the backend's smoke gate, and report with screenshots. Requires a cmpose.dev backend checkout. |
+| [`account-delegate`](./account-delegate) | Offer to hand a self-contained job to a second Claude Code account on the same machine (headless, live in a side cmux pane) and bring its report — or a worktree branch to merge — back to your main session. |
 
 ## Install
 
