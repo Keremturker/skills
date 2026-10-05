@@ -14,8 +14,9 @@ case "${FAKE_MODE:-ok}" in
     echo '{"type":"result","subtype":"success","is_error":false,"num_turns":2,"total_cost_usd":0.3,"session_id":"s1","permission_denials":[],"result":"## Done\nAll done."}'
     ;;
   write)
-    echo hello > fake.txt
-    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"total_cost_usd":0.1,"session_id":"s2","permission_denials":[],"result":"wrote fake.txt"}'
+    echo hello > "${FAKE_FILE:-fake.txt}"
+    printf '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"total_cost_usd":0.1,"session_id":"%s","permission_denials":[],"result":"wrote %s"}\n' \
+      "${FAKE_SESSION:-s2}" "${FAKE_FILE:-fake.txt}"
     ;;
   dirty_ro)   # leaves an untracked file, so `git worktree remove` refuses
     echo junk > junk.txt
