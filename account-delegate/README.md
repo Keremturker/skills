@@ -19,7 +19,33 @@ Two modes:
   you merge). That commit uses the git dir recorded before the run, never the worktree's
   `.git` file; if the agent changed that file, nothing is committed (`commit_failed: true`,
   explained in `stderr.log`) and the worktree is left as is. Clean/smudge filters your own git
-  config defines (e.g. git-lfs) still run on the agent's files, as in any `git add`.
+  config defines (e.g. git-lfs) still run on the agent's files, as in any `git add`. Git never
+  runs inside nested repos: a gitlink already in the index (a submodule of the base, a nested
+  repo an earlier plan job committed) is left out of the collection, so changes inside it are
+  not collected; a new nested repo is committed as a gitlink.
+
+## Plan mode
+
+`delegate.sh --mode write --plan <plan dir> --cwd <dir> --brief <file> [--base <ref>] [--title <t>] [--resume <session id>]`
+
+Runs the tasks of one implementation plan in a single worktree, `<plan dir>/worktree`, on branch
+`delegate/<plan id>` (`<plan id>` = basename of `<plan dir>`, `[A-Za-z0-9._-]`). The first call
+needs `--base` and writes `<plan dir>/plan.json` (base, base commit, cwd, branch, and the pinned
+git dir and `.git` file); later calls refuse `--base` and must use the same `--cwd`. Every call
+gets `<plan dir>/jobs/<n>/` (a normal job dir) and adds at most one commit,
+`delegate(<plan id>): <title>`. Before a later job starts, the script checks that the `.git`
+file is unchanged, that the worktree is on the plan branch and that it has no uncommitted
+changes; otherwise it exits 2. `--resume` continues the second account's session of an earlier
+job of the same plan (any other session id: exit 2). `<plan dir>/lock` allows one job at a time;
+a lock whose process is gone is taken over. A lock dir with no or an invalid pid (the process was
+killed between creating it and writing the pid) is never taken over: check that no job is running,
+then `rm -rf <plan dir>/lock`. If `delegate.sh` was SIGKILLed, its `claude` child may still be
+running; check for it before taking over. The plan worktree is never removed by the script. A
+plan dir without `plan.json` may hold other files (e.g. `progress.md`, the jobs of a first call
+that failed) and is refused only if it has a `worktree` or `plan.json.tmp`.
+`meta.json` gains `plan_id`, `plan_dir`, `job_n`, `title`, `resumed_from` and `parent_commit`
+(the branch tip before the job), null outside plan mode. `--plan` is write mode only and cannot
+be combined with `--id`; `--title` and `--resume` need `--plan`.
 
 ## Base ref
 
@@ -85,6 +111,7 @@ without meta.json" if the process in `pid` dies first (e.g. it was SIGKILLed).
 bash account-delegate/tests/test_watch.sh
 bash account-delegate/tests/test_delegate.sh
 bash account-delegate/tests/test_delegate_write.sh
+bash account-delegate/tests/test_delegate_plan.sh
 ```
 
 They use a fake `claude` and never touch a real account.
