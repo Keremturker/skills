@@ -42,9 +42,26 @@ run --mode write --plan "$TMP/plans/bad name" --cwd "$REPO" --brief "$B" --base 
 check "plan dir name with a space exits 2" test "$CODE" -eq 2
 check "refused calls wrote no plan.json" test ! -e "$PLAN/plan.json"
 check "refused calls printed no JOB_DIR" test -z "$JOB"
-mkdir -p "$TMP/plans/p2/junk"
+mkdir -p "$TMP/plans/p2/worktree"
 run --mode write --plan "$TMP/plans/p2" --cwd "$REPO" --brief "$B" --base "$MAIN"
-check "non-empty dir without plan.json exits 2" test "$CODE" -eq 2
+check "worktree/ without plan.json exits 2" bash -c 'test "$1" -eq 2 && test ! -e "$2/jobs"' _ "$CODE" "$TMP/plans/p2"
+mkdir -p "$TMP/plans/p7" && : > "$TMP/plans/p7/plan.json.tmp"
+run --mode write --plan "$TMP/plans/p7" --cwd "$REPO" --brief "$B" --base "$MAIN"
+check "plan.json.tmp without plan.json exits 2" test "$CODE" -eq 2
+
+# --- the controller's progress.md may exist before the first job
+mkdir -p "$TMP/plans/p8" && echo '# progress' > "$TMP/plans/p8/progress.md"
+FAKE_MODE=write FAKE_FILE=p8.txt run --mode write --plan "$TMP/plans/p8" --cwd "$REPO" --brief "$B" --base "$MAIN"
+check "progress.md before the first job: job runs" bash -c 'test "$1" -eq 0 && test "$2" = "$(cd "$3" && pwd -P)/jobs/1" && test -f "$3/plan.json"' _ "$CODE" "$JOB" "$TMP/plans/p8"
+
+# --- a first job that fails at worktree add leaves the plan dir retryable with --base
+git -C "$REPO" branch delegate/p9
+FAKE_MODE=write FAKE_FILE=p9.txt run --mode write --plan "$TMP/plans/p9" --cwd "$REPO" --brief "$B" --base "$MAIN"
+check "first job fails at worktree add" bash -c 'test "$1" -eq 1 && test ! -e "$2/plan.json" && test ! -e "$2/worktree"' _ "$CODE" "$TMP/plans/p9"
+check "failure names the existing branch" grep -qF "delegate/p9 already exists" "$JOB/result.md"
+git -C "$REPO" branch -D -q delegate/p9
+FAKE_MODE=write FAKE_FILE=p9.txt run --mode write --plan "$TMP/plans/p9" --cwd "$REPO" --brief "$B" --base "$MAIN"
+check "retry with --base succeeds as jobs/2" bash -c 'test "$1" -eq 0 && test "$2" = "$(cd "$3" && pwd -P)/jobs/2" && test -f "$3/plan.json"' _ "$CODE" "$JOB" "$TMP/plans/p9"
 
 # --- first job creates the plan
 FAKE_MODE=write FAKE_FILE=a.txt run --mode write --plan "$PLAN" --cwd "$REPO" --brief "$B" --base "$MAIN" --title "Task 1: a"

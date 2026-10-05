@@ -159,7 +159,8 @@ if [ -n "$PLAN" ]; then
     fi
   else
     [ -z "$RESUME" ] || die "--resume: plan $PLAN_ID has no jobs yet"
-    ! ls -A "$PLAN" | grep -vqx lock || die "plan dir exists but has no plan.json: $PLAN"
+    [ ! -e "$PLAN/worktree" ] && [ ! -e "$PLAN/plan.json.tmp" ] && [ ! -L "$PLAN/worktree" ] \
+      || die "a previous attempt left a worktree but no plan.json; inspect and remove it, or use a new plan dir: $PLAN"
   fi
   N=1; while [ -e "$PLAN/jobs/$N" ]; do N=$((N + 1)); done
   ID="$PLAN_ID-$N"
@@ -250,6 +251,8 @@ case "$MODE" in
       else BRANCH="delegate/$ID" WORKTREE="$JOB/worktree"; fi
       if ! git -C "$TOP" -c core.hooksPath=/dev/null worktree add -q -b "$BRANCH" "$WORKTREE" "$BASE_COMMIT" >> "$JOB/stderr.log" 2>&1; then
         echo "Could not create the git worktree; see stderr.log." > "$JOB/result.md"
+        [ -z "$PLAN" ] || ! git -C "$TOP" show-ref -q --verify "refs/heads/$BRANCH" \
+          || echo "Likely cause: branch $BRANCH already exists; delete or rename it, then retry." | tee -a "$JOB/stderr.log" >> "$JOB/result.md"
         BRANCH="" WORKTREE=""
         write_meta 1; exit 1
       fi
