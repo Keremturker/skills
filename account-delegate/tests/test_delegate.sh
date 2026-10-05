@@ -123,6 +123,44 @@ check "~2 MB result: meta.json exists and parses" bash -c 'jq -e .exit_code "$1"
 check "~2 MB result: exits 0" test "$CODE" -eq 0
 check "~2 MB result: result.md holds the report" test "$(wc -c < "$JOB/result.md")" -ge 2000000
 
+# --- non-git cwd: --base is refused, ro runs directly in --cwd
+run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md" --base main --id nb1
+check "--base for a non-git cwd exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/nb1"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+FAKE_MODE=ok run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md" --id nb2
+check "non-git ro without --base works in --cwd" bash -c 'test "$1" -eq 0 && test "$(cat "$2/pwd")" = "$3"' _ "$CODE" "$FAKE_LOG" "$(cd "$TMP/proj" && pwd -P)"
+check "non-git ro: meta base, base_commit, worktree are null" bash -c 'jq -e "has(\"base\") and has(\"base_commit\") and .base == null and .base_commit == null and .worktree == null" "$1" >/dev/null' _ "$JOB/meta.json"
+
+# --- git repo: --base is required, ro runs in a throwaway detached worktree
+RREPO="$TMP/rrepo"; mkdir -p "$RREPO/sub"
+git -C "$RREPO" init -q && echo committed > "$RREPO/base.txt" && echo s > "$RREPO/sub/s.txt" \
+  && git -C "$RREPO" add . && git -C "$RREPO" commit -qm base
+RMAIN="$(git -C "$RREPO" symbolic-ref --short HEAD)"; RSHA="$(git -C "$RREPO" rev-parse HEAD)"
+echo dirty > "$RREPO/uncommitted.txt"
+run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --id rb0
+check "ro in a git repo without --base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/rb0"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --base no-such-ref --id rb0
+check "ro with an invalid --base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/rb0"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+
+FAKE_MODE=ok run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --base "$RMAIN" --id rb1
+check "ro in a git repo exits 0" test "$CODE" -eq 0
+check "ro git: agent ran in <job>/worktree" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$DELEGATE_CACHE_DIR/rb1" && pwd -P)/worktree"
+check "ro git: worktree dir is gone afterwards" test ! -e "$JOB/worktree"
+check "ro git: worktree is no longer registered" bash -c '! git -C "$1" worktree list --porcelain | grep -qF "$2/worktree"' _ "$RREPO" "$JOB"
+check "ro git: no delegate/ branch created" bash -c 'test -z "$(git -C "$1" branch --list "delegate/*")"' _ "$RREPO"
+check "ro git: meta.worktree null" test "$(meta .worktree)" = null
+check "ro git: meta.branch null" test "$(meta .branch)" = null
+check "ro git: meta base and base_commit" bash -c 'test "$(jq -r .base "$1/meta.json")" = "$2" && test "$(jq -r .base_commit "$1/meta.json")" = "$3"' _ "$JOB" "$RMAIN" "$RSHA"
+check "ro git: meta.start_branch recorded" test "$(meta .start_branch)" = "$RMAIN"
+check "ro git: user's tree untouched" bash -c 'test "$(git -C "$1" status --porcelain)" = "?? uncommitted.txt"' _ "$RREPO"
+FAKE_MODE=ok run --mode ro --cwd "$RREPO/sub" --brief "$TMP/brief.md" --base "$RSHA" --id rb2
+check "ro git subdir: agent ran in the subdir of the worktree" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$DELEGATE_CACHE_DIR/rb2" && pwd -P)/worktree/sub"
+check "ro git subdir: worktree removed, base given as sha" bash -c 'test ! -e "$1/worktree" && test "$(jq -r .base "$1/meta.json")" = "$2"' _ "$JOB" "$RSHA"
+FAKE_MODE=dirty_ro run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --base "$RMAIN" --id rb4
+check "ro git: refused removal leaves the worktree and names it in meta" bash -c 'test "$(jq -r .worktree "$1/meta.json")" = "$1/worktree" && test -d "$1/worktree" && grep -q "could not remove" "$1/stderr.log"' _ "$JOB"
+mkdir "$RREPO/untracked-dir"
+run --mode ro --cwd "$RREPO/untracked-dir" --brief "$TMP/brief.md" --base "$RMAIN" --id rb3
+check "ro git: subdir missing on the base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/rb3"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+
 # --- TERM mid-run
 FAKE_MODE=sleep bash "$DELEGATE" --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md" --id term-1 >/dev/null 2>&1 &
 PID=$!

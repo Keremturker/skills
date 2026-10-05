@@ -18,15 +18,16 @@ run --mode write --cwd "$TMP/plain" --brief "$TMP/brief.md"
 check "non-git cwd exits 2" test "$CODE" -eq 2
 check "non-git cwd creates no job dir" test -z "$JOB"
 git -C "$TMP/empty-repo" init -q
-run --mode write --cwd "$TMP/empty-repo" --brief "$TMP/brief.md"
+run --mode write --cwd "$TMP/empty-repo" --brief "$TMP/brief.md" --base HEAD
 check "repo without commits exits 2" test "$CODE" -eq 2
 
 REPO="$TMP/repo"; mkdir -p "$REPO/sub/dir"
 git -C "$REPO" init -q && echo base > "$REPO/README" && echo x > "$REPO/sub/dir/keep" \
   && git -C "$REPO" add . && git -C "$REPO" commit -qm base
+MAIN="$(git -C "$REPO" symbolic-ref --short HEAD)"
 echo dirty > "$REPO/uncommitted.txt"
 
-FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w1
+FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id w1
 check "write run exits 0" test "$CODE" -eq 0
 check "worktree lives in the job dir" test -d "$JOB/worktree"
 check "agent runs in the worktree" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$JOB/worktree" && pwd -P)"
@@ -47,35 +48,35 @@ check "user's uncommitted file still there" test -f "$REPO/uncommitted.txt"
 check "uncommitted changes are not visible to the agent" test ! -e "$JOB/worktree/uncommitted.txt"
 check "user's branch unchanged" test "$(git -C "$REPO" rev-parse --abbrev-ref HEAD)" != delegate/w1
 
-FAKE_MODE=write run --mode write --cwd "$REPO/sub/dir" --brief "$TMP/brief.md" --id w2
+FAKE_MODE=write run --mode write --cwd "$REPO/sub/dir" --brief "$TMP/brief.md" --base "$MAIN" --id w2
 check "subdir: agent runs in the same subdir of the worktree" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$JOB/worktree/sub/dir" && pwd -P)"
 check "subdir: file committed at sub/dir/fake.txt" bash -c 'git -C "$1" show --name-only --format= delegate/w2 | grep -qx sub/dir/fake.txt' _ "$REPO"
 
-FAKE_MODE=ok run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w3
+FAKE_MODE=ok run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id w3
 check "no changes: exits 0" test "$CODE" -eq 0
 check "no changes: meta.commit null" test "$(meta .commit)" = null
 check "no changes: branch still at base" test "$(git -C "$REPO" rev-parse delegate/w3)" = "$(git -C "$REPO" rev-parse HEAD)"
 
-FAKE_MODE=crash run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w4
+FAKE_MODE=crash run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id w4
 check "crash in write mode exits 1 and writes meta" bash -c 'test "$1" -eq 1 && test -s "$2/meta.json"' _ "$CODE" "$JOB"
 
 mkdir -p "$REPO/untracked-dir"
-run --mode write --cwd "$REPO/untracked-dir" --brief "$TMP/brief.md" --id w5
-check "subdir missing in HEAD exits 2 before creating a job" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/w5"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+run --mode write --cwd "$REPO/untracked-dir" --brief "$TMP/brief.md" --base "$MAIN" --id w5
+check "subdir missing on base exits 2 before creating a job" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/w5"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
 
 git -C "$REPO" branch delegate/w6
-FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w6
+FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id w6
 check "worktree add failure exits 1" test "$CODE" -eq 1
 check "worktree add failure: meta written, worktree/branch null" bash -c 'jq -e ".worktree == null and .branch == null and .is_error == true" "$1/meta.json" >/dev/null' _ "$JOB"
 check "worktree add failure: result.md mentions worktree" grep -qi worktree "$JOB/result.md"
 
 printf '#!/bin/sh\nexit 1\n' > "$REPO/.git/hooks/pre-commit"; chmod +x "$REPO/.git/hooks/pre-commit"
-FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w7
+FAKE_MODE=write run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id w7
 check "repo hooks do not run during collection: exits 0" test "$CODE" -eq 0
 check "repo hooks do not run during collection: committed" test "$(meta .commit)" = "$(git -C "$REPO" rev-parse delegate/w7)"
 rm -f "$REPO/.git/hooks/pre-commit"
 
-FAKE_MODE=lock_index run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w8
+FAKE_MODE=lock_index run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id w8
 check "commit failure: exits 0" test "$CODE" -eq 0
 check "commit failure: meta.commit_failed true" test "$(meta .commit_failed)" = true
 check "commit failure: meta.commit null" test "$(meta .commit)" = null
@@ -83,21 +84,74 @@ check "commit failure: change left in the worktree" test -f "$JOB/worktree/fake.
 rm -f "$(git -C "$JOB/worktree" rev-parse --absolute-git-dir)/index.lock"
 
 git -C "$REPO" checkout -q --detach
-FAKE_MODE=ok run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --id w9
+FAKE_MODE=ok run --mode write --cwd "$REPO" --brief "$TMP/brief.md" --base "$MAIN" --id w9
 check "detached HEAD: meta.start_branch null" test "$(meta .start_branch)" = null
 git -C "$REPO" checkout -q -
+
+# --- --base: the job starts from the named ref, never from the user's HEAD
+BREPO="$TMP/brepo"; mkdir -p "$BREPO/shared"
+git -C "$BREPO" init -q && echo m > "$BREPO/shared/m.txt" && git -C "$BREPO" add . && git -C "$BREPO" commit -qm main1
+BMAIN="$(git -C "$BREPO" symbolic-ref --short HEAD)"
+git -C "$BREPO" checkout -q -b other && mkdir "$BREPO/onlyother" && echo o > "$BREPO/onlyother/o.txt" \
+  && echo o > "$BREPO/other.txt" && git -C "$BREPO" add . && git -C "$BREPO" commit -qm other1
+OTHER_SHA="$(git -C "$BREPO" rev-parse HEAD)"
+git -C "$BREPO" tag v1 && git -C "$BREPO" checkout -q "$BMAIN"
+mkdir "$BREPO/mainonly" && echo x > "$BREPO/mainonly/x.txt" && git -C "$BREPO" add . && git -C "$BREPO" commit -qm main2
+MAIN_SHA="$(git -C "$BREPO" rev-parse HEAD)"
+mkdir "$BREPO/onlyother"   # exists on disk (empty) but is not tracked on the user's branch
+
+run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --id b0
+check "git repo without --base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/b0"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base no-such-ref --id b0
+check "invalid --base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/b0"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base --id b0
+check "--base starting with a dash exits 2" test "$CODE" -eq 2
+run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base "" --id b0
+check "empty --base exits 2" bash -c 'test "$1" -eq 2 && test ! -e "$2/b0"' _ "$CODE" "$DELEGATE_CACHE_DIR"
+run --mode write --cwd "$TMP/plain" --brief "$TMP/brief.md" --base "$BMAIN" --id b0
+check "write with --base but non-git cwd exits 2" test "$CODE" -eq 2
+
+HEAD_BEFORE="$(git -C "$BREPO" rev-parse HEAD)"; STATUS_BEFORE="$(git -C "$BREPO" status --porcelain)"
+FAKE_MODE=write run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base other --id b1
+check "write from another branch exits 0" test "$CODE" -eq 0
+check "agent runs in the worktree" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$JOB/worktree" && pwd -P)"
+check "file that exists only on the base is visible in the worktree" test -f "$JOB/worktree/other.txt"
+check "file only on the user's branch is not in the worktree" test ! -e "$JOB/worktree/mainonly"
+check "commit parent is the tip of the base" test "$(git -C "$BREPO" rev-parse delegate/b1^)" = "$OTHER_SHA"
+check "user's current branch unchanged" test "$(git -C "$BREPO" symbolic-ref --short HEAD)" = "$BMAIN"
+check "user's HEAD commit unchanged" test "$(git -C "$BREPO" rev-parse HEAD)" = "$HEAD_BEFORE"
+check "user's tree unchanged" test "$(git -C "$BREPO" status --porcelain)" = "$STATUS_BEFORE"
+check "meta.base as given" test "$(meta .base)" = other
+check "meta.base_commit is the resolved sha" test "$(meta .base_commit)" = "$OTHER_SHA"
+check "meta.start_branch is the user's branch" test "$(meta .start_branch)" = "$BMAIN"
+
+FAKE_MODE=write run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base v1 --id b2
+check "write with a tag base: exits 0" test "$CODE" -eq 0
+check "tag base: meta.base as given, base_commit resolved" bash -c 'test "$(jq -r .base "$1/meta.json")" = v1 && test "$(jq -r .base_commit "$1/meta.json")" = "$2"' _ "$JOB" "$OTHER_SHA"
+check "tag base: commit parent is the tagged commit" test "$(git -C "$BREPO" rev-parse delegate/b2^)" = "$OTHER_SHA"
+FAKE_MODE=write run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base "$MAIN_SHA" --id b3
+check "write with a sha base: exits 0" test "$CODE" -eq 0
+check "sha base: meta.base as given" test "$(meta .base)" = "$MAIN_SHA"
+check "sha base: commit parent is that sha" test "$(git -C "$BREPO" rev-parse delegate/b3^)" = "$MAIN_SHA"
+
+FAKE_MODE=write run --mode write --cwd "$BREPO/onlyother" --brief "$TMP/brief.md" --base other --id b4
+check "subdir that exists on the base but not on HEAD is allowed" test "$CODE" -eq 0
+check "that subdir: agent runs in it inside the worktree" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$JOB/worktree/onlyother" && pwd -P)"
+run --mode write --cwd "$BREPO/mainonly" --brief "$TMP/brief.md" --base other --id b5
+check "subdir missing on the base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/b5"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
 
 # --- agent-controlled git config must not run during collection
 HREPO="$TMP/hooked"; mkdir -p "$HREPO/.hooks"
 printf '#!/bin/sh\nexit 0\n' > "$HREPO/.hooks/pre-commit"; chmod +x "$HREPO/.hooks/pre-commit"
 git -C "$HREPO" init -q && echo base > "$HREPO/README" && git -C "$HREPO" add . \
   && git -C "$HREPO" commit -qm base && git -C "$HREPO" config core.hooksPath .hooks
-FAKE_MODE=evil_hook run --mode write --cwd "$HREPO" --brief "$TMP/brief.md" --id h1
+HMAIN="$(git -C "$HREPO" symbolic-ref --short HEAD)"
+FAKE_MODE=evil_hook run --mode write --cwd "$HREPO" --brief "$TMP/brief.md" --base "$HMAIN" --id h1
 check "tracked hook edited by the agent does not run" test ! -e "$FAKE_LOG/hook-ran"
 check "tracked hook: change still committed" bash -c 'git -C "$1" show --name-only --format= delegate/h1 | grep -qx fake.txt' _ "$HREPO"
 check "tracked hook: meta.commit is the branch tip" test "$(meta .commit)" = "$(git -C "$HREPO" rev-parse delegate/h1)"
 
-FAKE_MODE=evil_gitfile run --mode write --cwd "$HREPO" --brief "$TMP/brief.md" --id h2
+FAKE_MODE=evil_gitfile run --mode write --cwd "$HREPO" --brief "$TMP/brief.md" --base "$HMAIN" --id h2
 check "rewritten .git: fsmonitor of the agent's git dir does not run" test ! -e "$FAKE_LOG/fsmonitor-ran"
 check "rewritten .git: exits 0" test "$CODE" -eq 0
 check "rewritten .git: meta.commit_failed true" test "$(meta .commit_failed)" = true

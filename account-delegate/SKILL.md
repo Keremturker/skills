@@ -41,12 +41,25 @@ Offer only if ALL hold:
 
 Pick the mode:
 - **ro** (read-only analysis): reads files and the web, writes nothing. Bash is disabled, so
-  if git history matters, collect it yourself and paste it into the brief.
+  if git history matters, collect it yourself and paste it into the brief. In a git repo it
+  runs in a throwaway detached worktree of the base (removed automatically afterwards); outside
+  a git repo it runs directly in `--cwd` and `--base` must not be passed.
 - **write** (code change in a worktree): only inside a git repo with at least one commit. The
-  job works on branch `delegate/<id>` in its own worktree from `HEAD`; the user's working tree
-  is not touched. Uncommitted changes are NOT visible to it — mention this if the tree is dirty.
-  `--cwd` must be the repo root or a directory tracked in `HEAD`; an untracked or ignored
-  subdirectory makes the script exit 2, so pick a tracked directory (or the repo root).
+  job works on branch `delegate/<id>` in its own worktree created from the base; the user's
+  working tree and branch are not touched. `--cwd` must be the repo root or a directory that
+  exists on the base; otherwise the script exits 2.
+
+### Choose the base (git repos)
+
+Every job in a git repo needs `--base <ref>` (branch, tag or commit); without it the script
+exits 2 and creates no job dir. Choose it like this:
+- Default: the user's currently checked-out branch (`git -C <repo> branch --show-current`).
+- For an independent job (e.g. a new feature unrelated to the current work) you may propose
+  `main` / the default branch instead; always say why.
+- The user can name any other ref.
+
+Anything not committed on `<base>` is invisible to the job, in both modes. Say so in the offer
+when the working tree is dirty or when `<base>` differs from the current branch.
 
 If it does not qualify, say nothing about delegation and do the job yourself.
 
@@ -54,10 +67,13 @@ If it does not qualify, say nothing about delegation and do the job yourself.
 
 Ask one question, e.g. (Turkish user):
 
-> Bu işi ikinci hesaba paslayabiliriz — **mod: salt-okur analiz** — kapsam: `core/` modülündeki
-> ağ katmanını inceleyip riskleri raporlamak. Yapalım mı?
+> Bu işi ikinci hesaba paslayabiliriz — **mod: worktree'de kod değişikliği, `develop` dalından** —
+> kapsam: `core/` modülündeki ağ katmanını yeniden düzenlemek. Yapalım mı?
 
-For write mode say **mod: worktree'de kod değişikliği** and name the repo. Wait for the answer.
+For read-only say **mod: salt-okur analiz, `develop` dalından** instead (in a git repo; outside
+one, just **mod: salt-okur analiz**). The offer always names the base, and the repo for write
+mode; if the base is not the current branch, or the tree is dirty, add that uncommitted work is
+not visible to the job. Wait for the answer.
 
 ## 3. Write the brief
 
@@ -77,8 +93,10 @@ Write the brief in the user's language.
 Start it with the Bash tool and `run_in_background: true`:
 
 ```bash
-~/.claude/skills/account-delegate/scripts/delegate.sh --mode <ro|write> --cwd "<project dir>" --brief "<brief file>"
+~/.claude/skills/account-delegate/scripts/delegate.sh --mode <ro|write> --cwd "<project dir>" --brief "<brief file>" --base "<base ref>"
 ```
+
+Always pass `--base` in a git repo; omit it only for a `--cwd` outside any git repo (ro only).
 
 Read the background output until the first line `JOB_DIR=<path>` appears, then open the
 live view next to this session (skip this step if `cmux` is not available or
@@ -93,7 +111,8 @@ notified when the background command exits. Meanwhile you may continue other wor
 not touch the same files.
 
 If the command exits with code 2 and no `JOB_DIR=` line, it was a usage error (bad flag,
-missing brief, non-git or untracked `--cwd`, missing config dir or binary). No job was
+missing brief, missing or unresolvable `--base`, `--base` for a non-git `--cwd`, write mode
+outside a git repo, a `--cwd` that does not exist on the base, missing config dir or binary). No job was
 created: show the stderr message to the user and fix the call; do not treat it as a job
 failure.
 
@@ -102,7 +121,9 @@ failure.
 Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
 
 - **Success** (`is_error: false`): summarise the report for the user. Mention the cost
-  (`total_cost_usd`) and turns in one line.
+  (`total_cost_usd`) and turns in one line. In ro mode inside a git repo the worktree is
+  removed automatically; if `meta.worktree` is non-null it was left behind (see `stderr.log`):
+  tell the user it was left and where (`worktree remove` without `--force` is theirs to run).
 - **Blocked or needed commands** (report section, or `permission_denials` in meta): list them
   and ask the user whether you should run them here. Run only the ones they approve.
 - **Write mode:** delegate.sh committed the changes for the job with git hooks disabled and
@@ -111,10 +132,10 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
   merge in their tree.
   - If `commit` is null and `commit_failed` is false, there were no changes: remove the
     worktree (`git -C <repo> worktree remove <JOB_DIR>/worktree`), delete the branch
-    (`git -C <repo> branch -d delegate/<id>`) and say so. The branch still points at the commit
-    the job started from, so `-d` accepts it while that commit is in the history of the user's
-    current branch (normally `start_branch`); if `-d` refuses (e.g. the user switched to an
-    unrelated branch), tell the user instead of using `-D`.
+    (`git -C <repo> branch -d delegate/<id>`) and say so. The branch still points at
+    `base_commit`, so `-d` accepts it while that commit is in the history of the user's current
+    branch; if `-d` refuses (e.g. the base is on an unrelated branch), tell the user instead of
+    using `-D`.
   - If `commit_failed` is true, the worktree holds the only copy of the work: do NOT remove it
     unless the user says so. Show the end of `stderr.log` and ask how to proceed.
     - If `stderr.log` says the worktree's `.git` was changed or removed, the job tampered with
@@ -123,12 +144,13 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
       files with plain tools (`ls -la`), and leave the cleanup to them.
     - Otherwise also show `git -C <JOB_DIR>/worktree status`.
   - Otherwise (a commit on `delegate/<id>`):
-    1. Check the user's current branch (`git -C <repo> symbolic-ref -q --short HEAD`). If it
-       differs from `start_branch` (or either is null, i.e. a detached HEAD), tell the user
-       and ask which branch to merge into before going on; do not merge into a branch they
-       did not confirm.
-    2. Show `git -C <repo> diff --stat HEAD...delegate/<id>` and offer the full diff
-       (`git -C <repo> diff HEAD...delegate/<id>`); if it is small (roughly under 200 lines),
+    1. The merge target is `meta.base` when it is a branch name. Check the user's current
+       branch (`git -C <repo> branch --show-current`; empty when detached). If it is not
+       `base`, tell the user and ask before doing anything; never switch branches on your own.
+       If `base` was a tag or a sha, ask where to merge. Do not merge into a branch the user
+       did not confirm. (`start_branch` is informational only.)
+    2. Show `git -C <repo> diff --stat <base_commit>...delegate/<id>` and offer the full diff
+       (`git -C <repo> diff <base_commit>...delegate/<id>`); if it is small (roughly under 200 lines),
        show it directly. Explicitly point out every change to git hooks (`.githooks/`,
        `.husky/`, `.hooks/`, the dir in `core.hooksPath`), CI config (`.github/workflows/`,
        `.gitlab-ci.yml`, ...), and build or package scripts (`build.gradle*`, `package.json`

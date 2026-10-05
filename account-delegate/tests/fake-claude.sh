@@ -16,6 +16,10 @@ case "${FAKE_MODE:-ok}" in
     echo hello > fake.txt
     echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"total_cost_usd":0.1,"session_id":"s2","permission_denials":[],"result":"wrote fake.txt"}'
     ;;
+  dirty_ro)   # leaves an untracked file, so `git worktree remove` refuses
+    echo junk > junk.txt
+    echo '{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"ok"}'
+    ;;
   is_error)
     echo '{"type":"result","subtype":"error_max_turns","is_error":true,"num_turns":40,"total_cost_usd":1.5,"session_id":"s3","permission_denials":[{"tool_name":"Bash","tool_input":{"command":"git push"}}]}'
     ;;
