@@ -1,9 +1,9 @@
 {
   "_generated": {
     "by": "scripts/sync-contract.sh",
-    "date": "2026-10-01"
+    "date": "2026-10-05"
   },
-  "contractVersion": "3068cfee845c",
+  "contractVersion": "82fa11cb269b",
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
     "generate": "/api/generate",
@@ -70,7 +70,8 @@
   ],
   "reservedModuleNames": [
     "build",
-    "monetization"
+    "monetization",
+    "notes"
   ],
   "reservedPackagePrefix": "com.kturker.multiplatform",
   "messages": {
@@ -83,7 +84,7 @@
     "appNameInvalid": "App Name must be 1-30 characters using only letters, numbers, spaces and . _ ' - (no leading or trailing spaces)",
     "urlInvalid": "Invalid Base URL. Please enter a valid http(s) URL of at most 100 characters without spaces, quotes, backslashes or $ (e.g., https://api.example.com)",
     "maxModulesReached": "Maximum 3 feature modules allowed",
-    "moduleNameInvalid": "Module name must start with a letter, contain only lowercase letters and numbers (a-z, 0-9), and not be a Kotlin keyword (e.g., in, is, object) or one of the reserved names (build, monetization)",
+    "moduleNameInvalid": "Module name must start with a letter, contain only lowercase letters and numbers (a-z, 0-9), and not be a Kotlin keyword (e.g., in, is, object) or one of the reserved names (build, monetization, notes)",
     "moduleNameTooLong": "Module name must be at most 20 characters",
     "moduleNameDuplicate": "Each module name can be used only once",
     "minSdkInvalid": "Min SDK must be a number between 24 and 36",
@@ -103,7 +104,8 @@
     "detekt",
     "detektYamlContent",
     "purchases",
-    "ads"
+    "ads",
+    "room"
   ],
   "dependencyRules": {
     "alwaysOn": [
@@ -165,13 +167,21 @@
     "dataStore": [
       "datastore",
       "data store",
-      "database",
-      "db",
+      "preferences",
       "persistence",
       "local storage",
-      "veritabanı",
       "yerel depolama",
       "saklama"
+    ],
+    "room": [
+      "room database",
+      "sqlite",
+      "local database",
+      "offline storage",
+      "offline database",
+      "veritabanı",
+      "yerel veritabanı",
+      "çevrimdışı depolama"
     ],
     "detekt": [
       "detekt",
@@ -259,6 +269,12 @@
           "ads"
         ],
         "note": "AdMob banner/interstitial/rewarded + UMP/ATT consent (test IDs)"
+      },
+      "core/room": {
+        "requires": [
+          "room"
+        ],
+        "note": "Room KMP database (bundled SQLite): AppDatabase, DAOs, schemas/"
       }
     },
     "featureModules": {
@@ -268,6 +284,12 @@
           "ads"
         ],
         "note": "paywall (RevenueCat) and/or ads demo screens"
+      },
+      "feature/notes": {
+        "requires": [
+          "room"
+        ],
+        "note": "Notes demo screen on Room (blank only; showcase uses Room for favorites)"
       }
     },
     "detektDir": {

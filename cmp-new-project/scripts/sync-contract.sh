@@ -57,7 +57,9 @@ const keywordMap = {
   networkInspector: ['network inspector', 'inspector', 'chucker', 'http inspector', 'network monitor', 'ağ izleyici'],
   theming:          ['theming', 'theme', 'dark mode', 'light mode', 'material', 'tema', 'karanlık mod', 'koyu tema'],
   multiLang:        ['multi-language', 'multilanguage', 'multi language', 'i18n', 'l10n', 'localization', 'localisation', 'çoklu dil', 'yerelleştirme', 'dil desteği'],
-  dataStore:        ['datastore', 'data store', 'database', 'db', 'persistence', 'local storage', 'veritabanı', 'yerel depolama', 'saklama'],
+  dataStore:        ['datastore', 'data store', 'preferences', 'persistence', 'local storage', 'yerel depolama', 'saklama'],
+  // room: a local database / offline storage of structured data (DataStore is for preferences).
+  room:             ['room database', 'sqlite', 'local database', 'offline storage', 'offline database', 'veritabanı', 'yerel veritabanı', 'çevrimdışı depolama'],
   detekt:           ['detekt', 'static analysis', 'lint', 'kod analizi', 'statik analiz'],
   // purchases/ads: explicit monetization intent ONLY. Naming a featuresConfig key switches the
   // template to blank, so ordinary app descriptions must not match: no 'premium', 'subscription',
@@ -155,7 +157,8 @@ Endpoint resolution: ${c.endpointResolution}.
     "detekt": true,
     "detektYamlContent": null,       // optional custom detekt.yml as a string
     "purchases": true,               // RevenueCat paywall; ships a Test Store key — replace it before you ship
-    "ads": true                      // AdMob banner/interstitial/rewarded (Google test IDs) + UMP/ATT consent
+    "ads": true,                     // AdMob banner/interstitial/rewarded (Google test IDs) + UMP/ATT consent
+    "room": false                    // Room KMP database (core/room) + a Notes demo; only for a local database / offline storage, not preferences
   },
   "features": ["profile"]            // custom modules · each ${R.moduleName} · ≤${X.moduleName} · count ≤ maxModules (${L.maxModules})
 }
@@ -193,6 +196,14 @@ Kotlin hard keywords (\`kotlinHardKeywords\`): ${c.kotlinHardKeywords.map(k => '
   first visit to the ads screen, not at app launch; a real app should ask at launch. The EEA consent
   debug geography is applied in debug builds only.
 - Either flag adds \`feature/monetization\`; \`monetization\` is therefore a reserved module name.
+
+## Room (\`room\`)
+- \`room\` → \`core/room\` (Room KMP with bundled SQLite: \`AppDatabase\`, DAOs, exported \`schemas/\`) and, in
+  blank, a Notes demo screen in \`feature/notes\`. Showcase always has \`core/room\` (it stores the
+  favorites) and never \`feature/notes\`. \`notes\` is therefore a reserved module name.
+- Turn it on only when the user asks for a local database or offline storage of structured data.
+  Preferences and settings belong in DataStore (\`dataStore\`). \`room\` is independent: it implies nothing.
+- Notes is a demo: replace it or remove it. New tables go into the existing \`AppDatabase\`.
 
 ## blank vs showcase
 - **blank**: \`featuresConfig\` reflects the user's choices; \`features\` = custom modules

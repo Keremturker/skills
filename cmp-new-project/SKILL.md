@@ -73,6 +73,10 @@ there if needed, or overrides them up front in their request.
   are independent; with both on, premium hides the ads. Either one adds
   `feature/monetization`, so `monetization` is a reserved module name (see
   `reference/payload.md` → *Monetization*).
+  **Turn on `room` only when the user asks for a local database or offline storage
+  of structured data; DataStore (`dataStore`) is for preferences.** `room` implies
+  nothing and adds `core/room` plus, in blank, a `feature/notes` demo (so `notes` is a
+  reserved module name; see `reference/payload.md` → *Room*).
 
 ## 2. Ask ONLY these four — ONE at a time, in order
 Ask one question → wait → validate (below) → ask the next. **Don't batch. Ask
@@ -105,8 +109,8 @@ Versions: Kotlin 2.x · AGP 9.x · CMP 1.x · Gradle 9.x · JDK 21 (live)
 
 Sepetim/                              (showcase: full example app)
 ├── androidApp/  iosApp/  shared/ (Koin + Navigation)   always
-├── core/  (network, database, designsystem, multilang, purchases, ads, …)
-├── feature/home/  feature/monetization/  feature/onboarding/
+├── core/  (network, database, room, designsystem, multilang, purchases, ads, …)
+├── feature/home/  feature/monetization/  feature/onboarding/  (blank + room: feature/notes/)
 └── build-logic/
 ```
 Get a single yes/no before generating.
@@ -160,7 +164,8 @@ keys before shipping (a release build that still has the Test Store key keeps
 purchases disabled and the paywall shows a message); if it has `core/ads`, say it
 uses Google's test ad unit IDs and asks for UMP/ATT consent on the first visit to the
 ads screen (a real app should ask at launch; the EEA consent debug geography is
-debug-only). Offer to persist any changed preferences
+debug-only). If it has `feature/notes`, say Notes is a demo: replace it or remove it.
+Offer to persist any changed preferences
 (`packagePrefix`, `outputDir`, `minSdk`, `iosVersion`, `ide`, `openIde`,
 `autoBuildAndroid`, `autoRunIos`) back to `defaults.json`.
 
