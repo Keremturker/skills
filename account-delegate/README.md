@@ -27,7 +27,10 @@ Two modes:
 (branch, tag or commit) is **required** when `--cwd` is inside a git repo (missing or
 unresolvable: exit 2, no job dir) and **refused** otherwise (a non-git `--cwd` is ro only and
 runs in place). Anything not committed on the base is invisible to the job. Your checked-out
-branch, working tree and index are never touched. The merge target is the base branch.
+branch, working tree and index are never touched. The merge target is the base branch; a tag
+or sha base has no automatic merge target (you are asked where to merge). A name that is both a
+branch and a tag is refused (exit 2). Your own git hooks do not run when the worktree is created
+(`core.hooksPath=/dev/null` for `git worktree add`).
 
 ## Requirements
 
@@ -67,9 +70,10 @@ id), `events.jsonl` (stream-json), `stderr.log`, `result.md` (final report), `me
 (mode, exit code, error flag, turns, cost, denials; `base`, the ref as given, and `base_commit`,
 the sha it resolved to, both null outside git; `start_branch`, the branch you were on when the
 job started, null if detached or outside git; in write mode also `branch`, `commit`,
-`commit_failed`) and `worktree/` (git repos only). `meta.worktree` is the worktree path while
-it still exists: always in write mode, and in ro mode only if the automatic removal failed
-(the reason is in `stderr.log`); otherwise null. If jq cannot build the full `meta.json`, a minimal
+`commit_failed`) and `worktree/` (git repos only; in ro mode normally removed again after the
+run). `meta.worktree` is the worktree path while it still exists: always in write mode, and in ro
+mode only if the automatic removal failed (the reason is in `stderr.log`); otherwise null. The
+minimal fallback meta carries `base`, `base_commit` and `worktree` too. If jq cannot build the full `meta.json`, a minimal
 one (`id`, `mode`, `exit_code`, `is_error: true`, ...) is written instead.
 
 `watch.sh <job dir>` exits 0 once `meta.json` appears, and exits 1 with "job process is gone

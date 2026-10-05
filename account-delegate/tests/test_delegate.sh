@@ -157,6 +157,32 @@ check "ro git subdir: agent ran in the subdir of the worktree" test "$(cat "$FAK
 check "ro git subdir: worktree removed, base given as sha" bash -c 'test ! -e "$1/worktree" && test "$(jq -r .base "$1/meta.json")" = "$2"' _ "$JOB" "$RSHA"
 FAKE_MODE=dirty_ro run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --base "$RMAIN" --id rb4
 check "ro git: refused removal leaves the worktree and names it in meta" bash -c 'test "$(jq -r .worktree "$1/meta.json")" = "$1/worktree" && test -d "$1/worktree" && grep -q "could not remove" "$1/stderr.log"' _ "$JOB"
+git -C "$RREPO" checkout -q -b rother && echo o > "$RREPO/other.txt" && git -C "$RREPO" add other.txt && git -C "$RREPO" commit -qm other \
+  && git -C "$RREPO" checkout -q "$RMAIN"
+FAKE_MODE=ok run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --base rother --id rb5
+check "ro git: agent sees a base-only file" grep -qx other.txt "$FAKE_LOG/ls"
+check "ro git: agent does not see the user's uncommitted file" bash -c '! grep -qx uncommitted.txt "$1"' _ "$FAKE_LOG/ls"
+check "ro git: agent sees committed base content" grep -qx base.txt "$FAKE_LOG/ls"
+rm -f "$FAKE_LOG/fsmonitor-ran"
+FAKE_MODE=evil_gitfile run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --base "$RMAIN" --id rb6
+check "ro tamper: agent's fsmonitor does not run" test ! -e "$FAKE_LOG/fsmonitor-ran"
+check "ro tamper: meta.worktree names the left worktree" test "$(meta .worktree)" = "$JOB/worktree"
+check "ro tamper: stderr.log explains" grep -q '\.git' "$JOB/stderr.log"
+git -C "$RREPO" branch amb && git -C "$RREPO" tag amb
+run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --base amb --id rb7
+check "ro: ambiguous base (branch and tag) exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2"' _ "$CODE" "$JOB"
+git -C "$RREPO" tag -d amb >/dev/null; git -C "$RREPO" branch -D amb >/dev/null
+git -C "$RREPO" checkout -q -b rfile "$RMAIN" && echo f > "$RREPO/fileonbase" && git -C "$RREPO" add fileonbase && git -C "$RREPO" commit -qm file \
+  && git -C "$RREPO" checkout -q "$RMAIN" && mkdir "$RREPO/fileonbase"
+run --mode ro --cwd "$RREPO/fileonbase" --brief "$TMP/brief.md" --base rfile --id rb8
+check "ro: --cwd that is a file on the base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/rb8"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+# fallback meta.json (jq cannot build the full one) still carries base and worktree
+mkdir -p "$TMP/badjq"; REALJQ="$(command -v jq)"
+printf '#!/bin/sh\ncase "$*" in *"--arg id"*) exit 1 ;; esac\nexec "%s" "$@"\n' "$REALJQ" > "$TMP/badjq/jq"; chmod +x "$TMP/badjq/jq"
+PATH="$TMP/badjq:$PATH" FAKE_MODE=dirty_ro run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --base "$RMAIN" --id rb9
+check "fallback meta: base and base_commit kept, left worktree named" bash -c 'jq -e --arg b "$2" --arg w "$1/worktree" ".base == \$b and (.base_commit|length) == 40 and .worktree == \$w and .is_error == true" "$1/meta.json" >/dev/null' _ "$JOB" "$RMAIN"
+PATH="$TMP/badjq:$PATH" FAKE_MODE=ok run --mode ro --cwd "$RREPO" --brief "$TMP/brief.md" --base "$RMAIN" --id rb10
+check "fallback meta: removed worktree is null" bash -c 'jq -e ".worktree == null and has(\"base\")" "$1/meta.json" >/dev/null' _ "$JOB"
 mkdir "$RREPO/untracked-dir"
 run --mode ro --cwd "$RREPO/untracked-dir" --brief "$TMP/brief.md" --base "$RMAIN" --id rb3
 check "ro git: subdir missing on the base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/rb3"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"

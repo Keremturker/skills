@@ -45,11 +45,15 @@ if TOP="$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null)" && [ -n "$TOP" ]
 if [ "$IN_GIT" -eq 1 ]; then
   [ "$BASE_GIVEN" -eq 1 ] && [ -n "$BASE" ] || die "--base <branch|tag|commit> is required inside a git repository: $CWD"
   case "$BASE" in -*) die "invalid --base: $BASE" ;; esac
+  if git -C "$TOP" show-ref -q --verify "refs/heads/$BASE" 2>/dev/null \
+     && git -C "$TOP" show-ref -q --verify "refs/tags/$BASE" 2>/dev/null; then
+    die "--base is ambiguous (both a branch and a tag named $BASE); rename one or pass a commit sha"
+  fi
   BASE_COMMIT="$(git -C "$TOP" rev-parse --verify -q "$BASE^{commit}" 2>/dev/null)" && [ -n "$BASE_COMMIT" ] \
     || die "--base does not resolve to a commit: $BASE"
   PREFIX="$(git -C "$CWD" rev-parse --show-prefix)"
-  [ -z "$PREFIX" ] || git -C "$TOP" cat-file -e "$BASE_COMMIT:${PREFIX%/}" 2>/dev/null \
-    || die "--cwd does not exist on the base ($BASE): $CWD"
+  [ -z "$PREFIX" ] || [ "$(git -C "$TOP" cat-file -t "$BASE_COMMIT:${PREFIX%/}" 2>/dev/null)" = tree ] \
+    || die "--cwd is not a directory on the base ($BASE): $CWD"
   START_BRANCH="$(git -C "$TOP" symbolic-ref -q --short HEAD)"   # empty when detached
 else
   [ "$BASE_GIVEN" -eq 0 ] || die "--base is only for git repositories; $CWD is not in one"
@@ -95,13 +99,16 @@ write_meta() { # $1 = exit code of the claude run
      started_at: $started, finished_at: $finished}' > "$JOB/meta.json.tmp" 2>> "$JOB/stderr.log"; then
     # Fallback so watch.sh and the caller always get a meta.json. ID is [A-Za-z0-9._-],
     # MODE is ro|write, BRANCH is delegate/<ID> and COMMIT is hex, so no escaping is needed.
-    local b=null c=null bc=null
+    local b=null c=null bc=null bs=null w=null
+    # base and worktree are free text: include them only when they need no JSON escaping
+    case "$BASE" in ''|*[!A-Za-z0-9._/@+-]*) ;; *) [ "$BASE_GIVEN" -eq 1 ] && bs="\"$BASE\"" ;; esac
+    case "$WORKTREE" in ''|*[!A-Za-z0-9._/@+-]*) ;; *) w="\"$WORKTREE\"" ;; esac
     [ -n "$BRANCH" ] && b="\"$BRANCH\""
     [ -n "$COMMIT" ] && c="\"$COMMIT\""
     [ -n "$BASE_COMMIT" ] && bc="\"$BASE_COMMIT\""
     echo "delegate: could not build meta.json with jq; wrote a minimal one" >> "$JOB/stderr.log"
-    printf '{"id":"%s","mode":"%s","exit_code":%d,"is_error":true,"branch":%s,"commit":%s,"base_commit":%s,"commit_failed":%s}\n' \
-      "$ID" "$MODE" "$1" "$b" "$c" "$bc" "$COMMIT_FAILED" > "$JOB/meta.json.tmp"
+    printf '{"id":"%s","mode":"%s","exit_code":%d,"is_error":true,"branch":%s,"commit":%s,"base":%s,"base_commit":%s,"worktree":%s,"commit_failed":%s}\n' \
+      "$ID" "$MODE" "$1" "$b" "$c" "$bs" "$bc" "$w" "$COMMIT_FAILED" > "$JOB/meta.json.tmp"
   fi
   mv "$JOB/meta.json.tmp" "$JOB/meta.json"
 }
@@ -116,7 +123,7 @@ case "$MODE" in
     REPORT="$REPORT This is a read-only job: do not try to change any file."
     if [ "$IN_GIT" -eq 1 ]; then
       WORKTREE="$JOB/worktree"
-      if ! git -C "$TOP" worktree add -q --detach "$WORKTREE" "$BASE_COMMIT" >> "$JOB/stderr.log" 2>&1; then
+      if ! git -C "$TOP" -c core.hooksPath=/dev/null worktree add -q --detach "$WORKTREE" "$BASE_COMMIT" >> "$JOB/stderr.log" 2>&1; then
         echo "Could not create the git worktree; see stderr.log." > "$JOB/result.md"
         WORKTREE=""
         write_meta 1; exit 1
@@ -129,7 +136,7 @@ case "$MODE" in
   write)
     BRANCH="delegate/$ID"
     WORKTREE="$JOB/worktree"
-    if ! git -C "$TOP" worktree add -q -b "$BRANCH" "$WORKTREE" "$BASE_COMMIT" >> "$JOB/stderr.log" 2>&1; then
+    if ! git -C "$TOP" -c core.hooksPath=/dev/null worktree add -q -b "$BRANCH" "$WORKTREE" "$BASE_COMMIT" >> "$JOB/stderr.log" 2>&1; then
       echo "Could not create the git worktree; see stderr.log." > "$JOB/result.md"
       BRANCH="" WORKTREE=""
       write_meta 1; exit 1
@@ -143,7 +150,23 @@ case "$MODE" in
     ;;
 esac
 
-cd "$WORKDIR" || { write_meta 1; exit 1; }
+wt_tampered() {   # true when the worktree or its .git file is not what `worktree add` made
+  [ ! -d "$WORKTREE" ] || [ -L "$WORKTREE" ] || [ -L "$WORKTREE/.git" ] || [ ! -f "$WORKTREE/.git" ] \
+    || [ "$(od -An -tx1 < "$WORKTREE/.git" | tr -d ' \n')" != "$GITFILE_HEX" ]
+}
+ro_cleanup() {   # ro, git repo: remove the throwaway worktree (no --force)
+  [ "$MODE" = ro ] && [ -n "$WORKTREE" ] || return 0
+  # If the .git file changed, or the removal is refused, leave it and say so; meta.worktree then names it.
+  if wt_tampered; then
+    echo "delegate: $WORKTREE/.git was changed or removed during the run; the worktree was left in place. Do not run git inside it." >> "$JOB/stderr.log"
+  elif git -C "$TOP" -c core.hooksPath=/dev/null -c core.fsmonitor=false worktree remove "$WORKTREE" >> "$JOB/stderr.log" 2>&1; then
+    WORKTREE=""
+  else
+    echo "delegate: could not remove the read-only worktree; it was left at $WORKTREE" >> "$JOB/stderr.log"
+  fi
+}
+
+cd "$WORKDIR" || { echo "delegate: cannot enter $WORKDIR" >> "$JOB/stderr.log"; ro_cleanup; write_meta 1; exit 1; }
 # Strip the parent session's identity: CLAUDECODE, every CLAUDE_CODE_* and every ANTHROPIC_* var
 # (API key, auth token, base URL, models, custom headers, ...).
 UNSET=(-u CLAUDECODE)
@@ -183,21 +206,8 @@ cgit() {
       -c core.fsmonitor=false -c core.untrackedCache=false -c commit.gpgsign=false \
       -c maintenance.auto=false "$@"
 }
-wt_tampered() {   # true when the worktree or its .git file is not what `worktree add` made
-  [ ! -d "$WORKTREE" ] || [ -L "$WORKTREE" ] || [ -L "$WORKTREE/.git" ] || [ ! -f "$WORKTREE/.git" ] \
-    || [ "$(od -An -tx1 < "$WORKTREE/.git" | tr -d ' \n')" != "$GITFILE_HEX" ]
-}
-if [ "$MODE" = ro ] && [ -n "$WORKTREE" ]; then
-  # Throwaway worktree: remove it (no --force) while signals are still ignored. If the .git file
-  # changed, or the removal is refused, leave it and say so; meta.worktree then names it.
-  if wt_tampered; then
-    echo "delegate: $WORKTREE/.git was changed or removed during the run; the worktree was left in place. Do not run git inside it." >> "$JOB/stderr.log"
-  elif git -C "$TOP" -c core.hooksPath=/dev/null -c core.fsmonitor=false worktree remove "$WORKTREE" >> "$JOB/stderr.log" 2>&1; then
-    WORKTREE=""
-  else
-    echo "delegate: could not remove the read-only worktree; it was left at $WORKTREE" >> "$JOB/stderr.log"
-  fi
-fi
+# Throwaway ro worktree: removed while signals are still ignored, before meta is written.
+ro_cleanup
 if [ "$MODE" = write ]; then
   if wt_tampered; then
     COMMIT_FAILED=true

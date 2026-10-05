@@ -4,6 +4,7 @@ echo $$ > "$FAKE_LOG/pid"
 printf '%s\n' "$@" > "$FAKE_LOG/args"
 cat > "$FAKE_LOG/stdin"
 pwd -P > "$FAKE_LOG/pwd"
+ls -A > "$FAKE_LOG/ls"
 printf '%s\n' "${CLAUDE_CONFIG_DIR:-}" > "$FAKE_LOG/config"
 env > "$FAKE_LOG/env"
 echo '{"type":"system","subtype":"init","model":"fake","cwd":"x"}'

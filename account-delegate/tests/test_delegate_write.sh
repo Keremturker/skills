@@ -104,8 +104,12 @@ run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --id b0
 check "git repo without --base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/b0"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
 run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base no-such-ref --id b0
 check "invalid --base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/b0"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
-run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base --id b0
-check "--base starting with a dash exits 2" test "$CODE" -eq 2
+run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base -x --id b0
+check "--base starting with a dash exits 2 with the specific message" bash -c 'test "$1" -eq 2 && grep -q "invalid --base" "$2" && test ! -e "$3/b0"' _ "$CODE" "$TMP/err" "$DELEGATE_CACHE_DIR"
+git -C "$BREPO" branch amb && git -C "$BREPO" tag amb
+run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base amb --id b0
+check "base that is both a branch and a tag exits 2 (ambiguous)" bash -c 'test "$1" -eq 2 && grep -qi ambiguous "$2" && test ! -e "$3/b0"' _ "$CODE" "$TMP/err" "$DELEGATE_CACHE_DIR"
+git -C "$BREPO" tag -d amb >/dev/null; git -C "$BREPO" branch -D amb >/dev/null
 run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base "" --id b0
 check "empty --base exits 2" bash -c 'test "$1" -eq 2 && test ! -e "$2/b0"' _ "$CODE" "$DELEGATE_CACHE_DIR"
 run --mode write --cwd "$TMP/plain" --brief "$TMP/brief.md" --base "$BMAIN" --id b0
@@ -139,6 +143,17 @@ check "subdir that exists on the base but not on HEAD is allowed" test "$CODE" -
 check "that subdir: agent runs in it inside the worktree" test "$(cat "$FAKE_LOG/pwd")" = "$(cd "$JOB/worktree/onlyother" && pwd -P)"
 run --mode write --cwd "$BREPO/mainonly" --brief "$TMP/brief.md" --base other --id b5
 check "subdir missing on the base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/b5"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+
+git -C "$BREPO" checkout -q -b rfile "$BMAIN" && echo f > "$BREPO/fileonbase" && git -C "$BREPO" add fileonbase && git -C "$BREPO" commit -qm file \
+  && git -C "$BREPO" checkout -q "$BMAIN" && mkdir "$BREPO/fileonbase"
+run --mode write --cwd "$BREPO/fileonbase" --brief "$TMP/brief.md" --base rfile --id b7
+check "--cwd that is a file on the base exits 2 with no job dir" bash -c 'test "$1" -eq 2 && test -z "$2" && test ! -e "$3/b7"' _ "$CODE" "$JOB" "$DELEGATE_CACHE_DIR"
+
+# worktree add must not run the user's post-checkout hook
+printf '#!/bin/sh\ntouch "%s"\n' "$FAKE_LOG/post-checkout-ran" > "$BREPO/.git/hooks/post-checkout"; chmod +x "$BREPO/.git/hooks/post-checkout"
+FAKE_MODE=write run --mode write --cwd "$BREPO" --brief "$TMP/brief.md" --base "$BMAIN" --id b6
+check "user's post-checkout hook does not run for the worktree" bash -c 'test "$1" -eq 0 && test ! -e "$2/post-checkout-ran"' _ "$CODE" "$FAKE_LOG"
+rm -f "$BREPO/.git/hooks/post-checkout"
 
 # --- agent-controlled git config must not run during collection
 HREPO="$TMP/hooked"; mkdir -p "$HREPO/.hooks"

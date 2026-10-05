@@ -54,9 +54,12 @@ Pick the mode:
 Every job in a git repo needs `--base <ref>` (branch, tag or commit); without it the script
 exits 2 and creates no job dir. Choose it like this:
 - Default: the user's currently checked-out branch (`git -C <repo> branch --show-current`).
+  If HEAD is detached (empty output), propose the default branch (`main`/`develop`) or ask.
 - For an independent job (e.g. a new feature unrelated to the current work) you may propose
   `main` / the default branch instead; always say why.
-- The user can name any other ref.
+- The user can name any other ref. For a branch base pass the plain local branch name (`develop`,
+  not `origin/develop` or `refs/heads/develop`); a name that is both a branch and a tag is
+  refused by the script (exit 2).
 
 Anything not committed on `<base>` is invisible to the job, in both modes. Say so in the offer
 when the working tree is dirty or when `<base>` differs from the current branch.
@@ -134,8 +137,8 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
     worktree (`git -C <repo> worktree remove <JOB_DIR>/worktree`), delete the branch
     (`git -C <repo> branch -d delegate/<id>`) and say so. The branch still points at
     `base_commit`, so `-d` accepts it while that commit is in the history of the user's current
-    branch; if `-d` refuses (e.g. the base is on an unrelated branch), tell the user instead of
-    using `-D`.
+    branch; if `-d` refuses (e.g. the base differs from the current branch and is not in its
+    history), say so and leave the branch for the user; never use `-D` unprompted.
   - If `commit_failed` is true, the worktree holds the only copy of the work: do NOT remove it
     unless the user says so. Show the end of `stderr.log` and ask how to proceed.
     - If `stderr.log` says the worktree's `.git` was changed or removed, the job tampered with
@@ -144,11 +147,14 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
       files with plain tools (`ls -la`), and leave the cleanup to them.
     - Otherwise also show `git -C <JOB_DIR>/worktree status`.
   - Otherwise (a commit on `delegate/<id>`):
-    1. The merge target is `meta.base` when it is a branch name. Check the user's current
-       branch (`git -C <repo> branch --show-current`; empty when detached). If it is not
-       `base`, tell the user and ask before doing anything; never switch branches on your own.
-       If `base` was a tag or a sha, ask where to merge. Do not merge into a branch the user
-       did not confirm. (`start_branch` is informational only.)
+    1. The merge target is `meta.base`, but only when it is a local branch
+       (`git -C <repo> show-ref -q --verify refs/heads/<base>`). For anything else (`origin/x`,
+       `HEAD`, a tag, a sha) ask where to merge. Check the user's current branch
+       (`git -C <repo> branch --show-current`; empty when detached). If it is not `base`, tell
+       the user and offer explicitly: (a) they switch to `base` themselves and you merge,
+       (b) you merge into their current branch instead, (c) leave the branch as is. Never switch
+       branches yourself, and never merge into a branch the user did not confirm.
+       (`start_branch` is informational only.)
     2. Show `git -C <repo> diff --stat <base_commit>...delegate/<id>` and offer the full diff
        (`git -C <repo> diff <base_commit>...delegate/<id>`); if it is small (roughly under 200 lines),
        show it directly. Explicitly point out every change to git hooks (`.githooks/`,
@@ -164,7 +170,9 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
        no, leave the branch and remove only the worktree; use `-D` only if the user explicitly
        says to discard it.
   - Never use `--force` when removing a worktree; if removal is refused, tell the user.
-- **Failure** (`is_error: true`, non-zero `exit_code`, or empty `result.md`): show the last
+- **Failure** (`is_error: true`, non-zero `exit_code`, or empty `result.md`): also check
+  `meta.worktree` for a failed ro git run and tell the user if a worktree was left (and where).
+  Show the last
   ~20 lines of `watch.sh`-formatted events
   (`jq -R -r -f ~/.claude/skills/account-delegate/scripts/format-events.jq < <JOB_DIR>/events.jsonl | tail -n 20`)
   and the end of `stderr.log`, and offer to do the job in this session instead.
