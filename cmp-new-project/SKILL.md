@@ -109,7 +109,7 @@ Versions: Kotlin 2.x · AGP 9.x · CMP 1.x · Gradle 9.x · JDK 21 (live)
 
 Sepetim/                              (showcase: full example app)
 ├── androidApp/  iosApp/  shared/ (Koin + Navigation)   always
-├── core/  (logging (always), network, database (DataStore), room, designsystem, multilang, purchases, ads, …)
+├── core/  (logging (always), review (always), network, database (DataStore), room, designsystem, multilang, purchases, ads, …)
 ├── feature/home/  feature/monetization/  feature/onboarding/  (blank + room: feature/notes/)
 └── build-logic/
 ```
