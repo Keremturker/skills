@@ -112,7 +112,7 @@ Extra dependencies of one module (for example `projects.core.database` in `data`
 ## Retry when the connection comes back
 
 Only in projects with network: `ConnectivityMonitor` (`<rootPackage>.core.domain.ConnectivityMonitor`)
-is defined in `core/network`, so a ViewModel takes it with `@Provided`. Retry only after
+is provided by `core/network`, so a ViewModel takes it with `@Provided`. Retry only after
 `DataError.Network`; the user's own "Retry" stays as it is. Do not add a second connectivity
 library.
 
