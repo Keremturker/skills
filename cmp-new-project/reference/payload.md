@@ -113,8 +113,8 @@ Kotlin hard keywords (`kotlinHardKeywords`): `as`, `break`, `class`, `continue`,
 - `iosVersionInvalid`: iOS Version must be between 15.0 and 26.2
 
 ## Anatomy (which modules appear)
-- Always: androidApp, iosApp, shared, core/about, core/domain, core/logging, core/presentation, core/navigation, core/review, core/update, build-logic — shared wires Koin (DI) + Navigation, which are always included; core/logging sets up Kermit logging, core/review asks for in-app reviews and core/about shows the version, legal links and licences in every project, core/update checks for app updates.
-- `core/network`: if network (Ktor HTTP client)
+- Always: androidApp, iosApp, shared, core/about, core/domain, core/image, core/logging, core/presentation, core/navigation, core/review, core/update, build-logic — shared wires Koin (DI) + Navigation, which are always included; core/logging sets up Kermit logging, core/review asks for in-app reviews and core/about shows the version, legal links and licences in every project, core/update checks for app updates, core/image loads images with Coil.
+- `core/network`: if network (Ktor HTTP client; Coil network images)
 - `core/designsystem`: if theming || multiLang (theme (palette + KtTheme) and/or LocalStringResources)
 - `core/multilang`: if multiLang (i18n / localization)
 - `core/database`: if dataStore (DataStore persistence; with theming also the saved Light/Dark/System choice (DarkModeManager))
