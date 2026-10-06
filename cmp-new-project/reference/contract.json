@@ -3,7 +3,7 @@
     "by": "scripts/sync-contract.sh",
     "date": "2026-10-06"
   },
-  "contractVersion": "b9c456db474c",
+  "contractVersion": "c704fb4b2383",
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
     "generate": "/api/generate",
@@ -227,6 +227,7 @@
       "androidApp",
       "iosApp",
       "shared",
+      "core/about",
       "core/domain",
       "core/logging",
       "core/presentation",
@@ -234,7 +235,7 @@
       "core/review",
       "build-logic"
     ],
-    "alwaysNote": "shared wires Koin (DI) + Navigation, which are always included; core/logging sets up Kermit logging and core/review asks for in-app reviews in every project.",
+    "alwaysNote": "shared wires Koin (DI) + Navigation, which are always included; core/logging sets up Kermit logging, core/review asks for in-app reviews and core/about shows the version, legal links and licences in every project.",
     "coreModules": {
       "core/network": {
         "requires": [
