@@ -115,10 +115,19 @@ with "job process is gone without meta.json" if the process in `pid` dies first 
 SIGKILLed). The side pane the skill opens closes itself 5 seconds after exit 0 and otherwise
 waits for Enter.
 
+## Usage report
+
+`scripts/usage.sh [--since YYYY-MM-DD]` (default: the last 7 days, UTC days) prints two tables:
+the second account's delegated jobs per plan (jobs, cost as the CLI reported it, output and
+cache tokens; read from the job dirs in `DELEGATE_CACHE_DIR`), and the main account's tokens per
+project from its session transcripts (`USAGE_MAIN_PROJECTS_DIR`, default `~/.claude/projects`;
+tokens only, the transcripts carry no cost). For plan limits use `/usage` in each account.
+
 ## Tests
 
 ```bash
 bash account-delegate/tests/test_watch.sh
+bash account-delegate/tests/test_usage.sh
 bash account-delegate/tests/test_delegate.sh
 bash account-delegate/tests/test_delegate_write.sh
 bash account-delegate/tests/test_delegate_plan.sh

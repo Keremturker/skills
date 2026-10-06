@@ -191,6 +191,10 @@ Read `<JOB_DIR>/meta.json` and `<JOB_DIR>/result.md`.
   In write mode a failed job can leave branch `delegate/<id>` (possibly with a commit) and
   `<JOB_DIR>/worktree`: tell the user what was left and ask before removing anything.
 
+If the user asks how much each account used, run
+`~/.claude/skills/account-delegate/scripts/usage.sh [--since YYYY-MM-DD]` and summarise its two
+tables (second account: cost and tokens per plan; main account: tokens per project).
+
 Job dirs live in `DELEGATE_CACHE_DIR` (default `~/.cache/claude-delegate`) and are kept for
 reference; nothing cleans them automatically.
 
