@@ -49,7 +49,7 @@ same module, with the same package.
 ## Build files
 
 These are the files the generator writes, in every planned feature of both generations. The convention plugins already bring Koin (with
-annotations and KSP), kotlinx-serialization, `core/logging` (Kermit), `core/review` (presentation layers) and the `core/*` modules listed below; do not add them
+annotations and KSP), kotlinx-serialization, `core/logging` (Kermit), `core/review` and `core/image` (Coil 3; presentation layers) and the `core/*` modules listed below; do not add them
 again.
 
 ```kotlin
@@ -78,7 +78,7 @@ kotlin {
 
 // presentation/build.gradle.kts      (plugin brings Compose with Material3 and resources,
 //                                     lifecycle and navigation for Compose, Koin for Compose,
-//                                     :core:navigation, :core:presentation, :core:domain, :core:review, and
+//                                     :core:navigation, :core:presentation, :core:domain, :core:review, :core:image, and
 //                                     :core:designsystem / :core:multilang when present)
 plugins {
     alias(libs.plugins.feature.presentation.plugin)
