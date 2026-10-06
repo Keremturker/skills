@@ -109,6 +109,35 @@ Extra dependencies of one module (for example `projects.core.database` in `data`
 | Route and Content | `<Screen>Route` (`internal`), `<Screen>Content` (`private`) |
 | Test tag constants | `<Screen>TestTags`, values `snake_case` with a screen prefix |
 
+## Retry when the connection comes back
+
+Only in projects with network: `ConnectivityMonitor` (`<rootPackage>.core.domain.ConnectivityMonitor`)
+is provided by `core/network`, so a ViewModel takes it with `@Provided`. Retry only after
+`DataError.Network`; the user's own "Retry" stays as it is. Do not add a second connectivity
+library.
+
+```kotlin
+@KoinViewModel
+internal class RecipesViewModel(
+    @Provided private val getRecipes: GetRecipesUseCase,
+    @Provided private val connectivityMonitor: ConnectivityMonitor
+) : CoreViewModel() {
+
+    // _uiState, load() and onRetry() (the Retry action) as in the rest of the ViewModel
+
+    init {
+        load()
+        // Back online after a connection error: load again (an HTTP or parsing error is not retried)
+        connectivityMonitor.reconnections()
+            .onEach { if (_uiState.value.error == DataError.Network) onRetry() }
+            .launchIn(viewModelScope)
+    }
+}
+```
+
+`reconnections()` emits only on an offline → online change, not for the first value. The app shell
+already shows `OfflineBanner` in `MainScreen.kt`; a screen does not draw its own.
+
 ## Checklist for a brand-new feature module
 
 Only when `settings.gradle.kts` does not list the feature yet.
