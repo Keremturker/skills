@@ -16,8 +16,9 @@ The one flow must run on both platforms:
   accessibility identifier Maestro matches). Avoid `text:` selectors for anything the language
   switch changes.
 - No Android-only commands: no `back`, no `pressKey: back`/`home`, no Android intents or
-  `adb`-style steps, and do not rely on `hideKeyboard`. To go back, tap the app's own back button
-  by its `id`.
+  `adb`-style steps, and no `hideKeyboard` (iOS number and decimal keyboards have no dismiss key, so
+  Maestro fails with "Couldn't hide the keyboard" and the iOS video stops there). To go back, tap the
+  app's own back button by its `id`.
 
 ## 1. How `id:` finds a composable
 
@@ -56,6 +57,8 @@ actual fun Modifier.testTagsAsResourceId(): Modifier = this
   `const val` values in `snake_case` and a screen prefix: `ROOT = "recipes_root"`.
 - The flow uses the same strings verbatim.
 - Every screen root has a `ROOT` tag; the flow uses it to know a transition finished.
+- A screen with a text field also has a `TITLE` tag on its non-interactive title text
+  (`TITLE = "recipe_detail_title"`); the flow taps it to close the keyboard.
 - Put the tag on the node that is clicked or typed into (the `Button`, the `clickable` row, the
   `TextField`), not on a wrapper around it.
 - List rows may share one tag; the flow picks a row with `index:`.
@@ -76,7 +79,8 @@ actual fun Modifier.testTagsAsResourceId(): Modifier = this
   timeout.
 - Screens that load from the network get a 15-second timeout, and the flow must go on whether the
   content or the error state arrives.
-- After `inputText`, `hideKeyboard` before the next tap.
+- After `inputText`, close the keyboard by tapping the screen's `TITLE` tag before the next tap.
+  Never `hideKeyboard` (see above).
 - A row below the fold does not exist on screen yet: `scrollUntilVisible` first.
 - Selectors: `id:` always. Text only for a system dialog that cannot carry a tag. Coordinates
   (`point:`) never without a comment saying why.
@@ -128,7 +132,9 @@ appId: com.example.cookbook
 - tapOn:
     id: "recipe_detail_note_field"
 - inputText: "Less salt"
-- hideKeyboard
+# Close the keyboard on both platforms: tap the non-interactive title.
+- tapOn:
+    id: "recipe_detail_title"
 - tapOn:
     id: "recipe_detail_save"
 ```

@@ -4,8 +4,12 @@ Lets your main Claude Code session offer to hand a self-contained job to a **sec
 Code account** on the same machine — for example to use that account's quota. The second
 account runs headless (`claude -p`) under its own settings and policy, you watch it live in
 a side cmux pane, and the report comes back into your main session. Nothing is delegated
-without your explicit yes. Edits (write mode, `acceptEdits`) and the read tools (ro mode)
-are pre-allowed; permission prompts for anything else are never auto-approved.
+without your explicit yes. Write jobs run in the second account's `auto` permission mode:
+edits are allowed and its own classifier approves safe shell commands, denying risky ones
+(`DELEGATE_PERMISSION_MODE=acceptEdits` allows edits only). Ro jobs get the read tools only.
+Nothing is run with a mode that skips permission checks. Shell commands run as your OS user, so they are
+not confined to the worktree: only the second account's classifier and its own settings
+limit them.
 
 Two modes:
 - **ro** — read-only analysis/research/review (Read, Grep, Glob, WebSearch, WebFetch). In a
@@ -85,6 +89,7 @@ Link it into your **main** account's skills only — not into the second account
 | `DELEGATE_CLAUDE_BIN` | `~/.local/bin/claude`, else `claude` on `PATH` | CLI to run (bypasses shell wrappers) |
 | `DELEGATE_CACHE_DIR` | `~/.cache/claude-delegate` | Where job dirs are kept |
 | `DELEGATE_MAX_TURNS` | `40` | Turn limit per job |
+| `DELEGATE_PERMISSION_MODE` | `auto` | Write-mode permission mode: `auto` or `acceptEdits` (anything else: exit 2) |
 
 The child process does not inherit your main session's identity: every `CLAUDE_CODE_*` and
 every `ANTHROPIC_*` variable (API key, auth token, base URL, models, custom headers, ...)
@@ -97,15 +102,18 @@ Each job dir (created private, `umask 077`) holds `brief.md`, `pid` (delegate.sh
 id), `events.jsonl` (stream-json), `stderr.log`, `result.md` (final report), `meta.json`
 (mode, exit code, error flag, turns, cost, denials; `base`, the ref as given, and `base_commit`,
 the sha it resolved to, both null outside git; `start_branch`, the branch you were on when the
-job started, null if detached or outside git; in write mode also `gitdir` (the worktree's git dir, pinned before the run), `branch`, `commit`,
+job started, null if detached or outside git; in write mode also `permission_mode` (the mode the run reported), `gitdir` (the worktree's git dir, pinned before the run), `branch`, `commit`,
 `commit_failed`) and `worktree/` (git repos only; in ro mode normally removed again after the
 run). `meta.worktree` is the worktree path while it still exists: always in write mode, and in ro
 mode only if the automatic removal failed (the reason is in `stderr.log`); otherwise null. The
 minimal fallback meta carries `base`, `base_commit` and `worktree` too. If jq cannot build the full `meta.json`, a minimal
 one (`id`, `mode`, `exit_code`, `is_error: true`, ...) is written instead.
 
-`watch.sh <job dir>` exits 0 once `meta.json` appears, and exits 1 with "job process is gone
-without meta.json" if the process in `pid` dies first (e.g. it was SIGKILLed).
+`watch.sh <job dir>` returns once `meta.json` appears: exit 0 if the job finished cleanly (no
+error, no denied tool call, no failed commit), exit 2 if it finished but needs a look. It exits 1
+with "job process is gone without meta.json" if the process in `pid` dies first (e.g. it was
+SIGKILLed). The side pane the skill opens closes itself 5 seconds after exit 0 and otherwise
+waits for Enter.
 
 ## Tests
 

@@ -20,9 +20,11 @@ Talk to the user in their language.
 
 - **Never delegate without asking.** Offer, then wait for an explicit yes. A no means: do not re-offer that same
   job this session; similar future jobs may still be offered.
-- The second account runs under its own policy. Never add MCP servers, plugin dirs, agents,
-  permission-bypass flags or approval hooks to its run, and never try to get around a denial
-  it reports — bring blocked commands back to the user instead.
+- The second account runs under its own policy. Write jobs use its `auto` permission mode
+  (its own classifier approves safe shell commands; `DELEGATE_PERMISSION_MODE=acceptEdits`
+  turns shell commands off again). Never add MCP servers, plugin dirs, agents,
+  permission-bypass flags (`bypassPermissions`, `dontAsk`) or approval hooks to its run, and
+  never try to get around a denial it reports — bring blocked commands back to the user instead.
 - Never put secrets, tokens, or private credentials in the brief.
 - If `DELEGATE_CLAUDE_CONFIG_DIR` (or `~/.claude-work`) does not exist, this skill does not
   apply; do the work yourself.
@@ -44,7 +46,10 @@ Pick the mode:
   if git history matters, collect it yourself and paste it into the brief. In a git repo it
   runs in a throwaway detached worktree of the base (removed automatically afterwards); outside
   a git repo it runs directly in `--cwd` and `--base` must not be passed.
-- **write** (code change in a worktree): only inside a git repo with at least one commit. The
+- **write** (code change in a worktree): only inside a git repo with at least one commit. It
+  may run shell commands its `auto` mode approves (see Rules); `meta.permission_mode` records
+  the mode the run actually got — if it is not `auto` (the account's organisation may disable
+  it), shell commands were denied: say so in one line. The
   job works on branch `delegate/<id>` in its own worktree created from the base; the user's
   working tree and branch are not touched. `--cwd` must be the repo root or a directory that
   exists on the base; otherwise the script exits 2.
@@ -106,7 +111,7 @@ live view next to this session (skip this step if `cmux` is not available or
 `CMUX_SURFACE_ID` is unset):
 
 ```bash
-cmux new-split right --focus false --command "~/.claude/skills/account-delegate/scripts/watch.sh '<JOB_DIR>'; printf '\nPress Enter to close'; read _"
+cmux new-split right --focus false --command "~/.claude/skills/account-delegate/scripts/watch.sh '<JOB_DIR>' && { printf '\nClosing in 5s'; sleep 5; } || { printf '\nPress Enter to close'; read _; }"
 ```
 
 Tell the user in one line that the job is running in the side pane. Do not poll; you are
@@ -206,6 +211,13 @@ usual execution-method question: ask once, e.g.
 
 Yes covers every task and fix round of this plan. No → `superpowers:subagent-driven-development`.
 
+**Split the plan before offering.** Mark each task in the plan as *second account* (code and
+docs edits) or *this session*: anything needing an emulator/simulator, network, package
+installs, push or publishing (smoke runs, UI tests such as Maestro, releases) always stays here.
+Only *second account* tasks are counted in the offer and delegated; run the others here in plan
+order. If those tasks span several repos, use one `PLAN_DIR` per repo (each with its own
+`--cwd`/`--base`) and name every repo and base in the offer.
+
 ### Setup
 
 `PLAN_DIR="${DELEGATE_CACHE_DIR:-$HOME/.cache/claude-delegate}/plans/<YYYYMMDD-HHMMSS>-<slug>"`
@@ -225,8 +237,10 @@ worktree is always `<PLAN_DIR>/worktree`.
 
 1. **Brief** (scratchpad file, user's language): the task's text copied **verbatim** from the
    plan (the plan file may not be committed on the base, so never just point at it); short
-   project context (repo, decisions, things not to touch); one line per finished task; "if you
-   cannot run a build or test command, list it under Blocked".
+   project context (repo, decisions, things not to touch); the rules from the project's rule
+   files (CLAUDE.md, AGENTS.md, style/convention docs) that apply to this task, copied in, since
+   the second account may not load them; one line per finished task; "if you cannot run a build
+   or test command, list it under Blocked".
 2. **Run** with `run_in_background: true`, then open the side pane as in section 4:
 
    ```bash

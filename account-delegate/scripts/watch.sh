@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Live view of a delegated job. Usage: watch.sh <job dir>
-# Prints events as they arrive and exits once meta.json exists (exit 0), or with exit 1 when
+# Prints events as they arrive until meta.json exists. Exit 0: the job finished cleanly (no
+# error, no denied tool call, no failed commit); exit 2: it finished but needs a look; exit 1:
 # the delegate.sh process recorded in <job dir>/pid is gone without having written meta.json.
 set -u
 JOB="${1:?usage: watch.sh <job dir>}"
@@ -42,3 +43,5 @@ jq -r '"job finished · exit \(.exit_code) · error: \(.is_error)"
   + (if .subtype then " · \(.subtype)" else "" end)
   + (if .num_turns then " · turns: \(.num_turns)" else "" end)
   + (if .total_cost_usd then " · cost: $\(.total_cost_usd)" else "" end)' "$JOB/meta.json"
+jq -e '.is_error == false and ((.permission_denials // []) | length == 0) and (.commit_failed != true)' \
+  "$JOB/meta.json" >/dev/null 2>&1 || exit 2
