@@ -83,7 +83,8 @@ through callbacks or a passed-down `NavController`.
   `shared/.../MainScreen.kt` at the app's first destination (`shared` already depends on every
   feature's `contract`), then delete `GuideScreen.kt` and, in `MainScreen.kt`, the
   `composable<GuideDestination> { ... }` block, the `entries` and `uriHandler` lines and the
-  imports they leave unused. The `<Name>Entry` classes may stay or go.
+  imports they leave unused. Do not delete the `ReviewRequestEffect()` line in `MainScreen.kt`; it
+  passes in-app review requests on. The `<Name>Entry` classes may stay or go.
 - The ViewModel navigates with the injected `NavigationManager`:
   `NavigationCommand.NavigateTo(XDestination(id))`, `NavigateUp`, `PopBackStackTo(...)`.
 - The ViewModel reads its arguments from `SavedStateHandle` by name:
