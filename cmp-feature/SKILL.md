@@ -84,7 +84,9 @@ through callbacks or a passed-down `NavController`.
   feature's `contract`), then delete `GuideScreen.kt` and, in `MainScreen.kt`, the
   `composable<GuideDestination> { ... }` block, the `entries` and `uriHandler` lines and the
   imports they leave unused. Do not delete the `ReviewRequestEffect()` line in `MainScreen.kt`; it
-  passes in-app review requests on. The `<Name>Entry` classes may stay or go.
+  passes in-app review requests on. The About dialog on `GuideScreen` goes with it; `core/about`
+  stays (its licences screen and the legal URLs are still used). The `<Name>Entry` classes may
+  stay or go.
 - The ViewModel navigates with the injected `NavigationManager`:
   `NavigationCommand.NavigateTo(XDestination(id))`, `NavigateUp`, `PopBackStackTo(...)`.
 - The ViewModel reads its arguments from `SavedStateHandle` by name:
