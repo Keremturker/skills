@@ -65,11 +65,11 @@ there if needed, or overrides them up front in their request.
   `featuresConfig` false, `features: []`). Apply dependency rules
   (`networkInspector ⇒ network`, `theming || multiLang ⇒ dataStore`).
   **Turn on `purchases` / `ads` only when the user explicitly asks for in-app
-  purchases / a paywall (RevenueCat) or for ads (AdMob).** Never infer them from
+  purchases / a paywall (custom paywall on RevenueCat) or for ads (AdMob).** Never infer them from
   words like "premium", "subscription", "purchases" or "satın alma" alone (a
   "premium-feeling recipe app" or a "subscription tracker" is not a paywall
   request); if unsure, leave them off and ask on the confirmation screen (step 3).
-  `purchases` (RevenueCat paywall) and `ads` (AdMob banner/interstitial/rewarded)
+  `purchases` (custom paywall (Compose, on `PurchasesManager`)) and `ads` (AdMob banner/interstitial/rewarded)
   are independent; with both on, premium hides the ads. Either one adds
   `feature/monetization`, so `monetization` is a reserved module name (see
   `reference/payload.md` → *Monetization*).

@@ -165,7 +165,7 @@ Endpoint resolution: ${c.endpointResolution}.
     "dataStore": true,               // auto-true if theming || multiLang
     "detekt": true,
     "detektYamlContent": null,       // optional custom detekt.yml as a string
-    "purchases": true,               // RevenueCat paywall; ships a Test Store key — replace it before you ship
+    "purchases": true,               // custom paywall on RevenueCat; ships a Test Store key — replace it before you ship
     "ads": true,                     // AdMob banner/interstitial/rewarded (Google test IDs) + UMP/ATT consent
     "room": false                    // Room KMP database (core/room) + a Notes demo; only for a local database / offline storage, not preferences
   },
@@ -196,7 +196,7 @@ Kotlin hard keywords (\`kotlinHardKeywords\`): ${c.kotlinHardKeywords.map(k => '
 - \`purchases\` and \`ads\` are independent. With both on, an active premium entitlement hides the ads.
 
 ## Monetization (\`purchases\`, \`ads\`)
-- \`purchases\` → \`core/purchases\` (RevenueCat KMP) + a paywall screen in \`feature/monetization\`.
+- \`purchases\` → \`core/purchases\` (RevenueCat KMP behind \`PurchasesManager\`: \`offer()\`, \`purchase(packageId)\`, \`restore()\`) + a custom Compose paywall and \`FirstLaunchPaywall()\` in \`feature/monetization\`.
   The project ships with a RevenueCat **Test Store** API key: replace it with your own platform keys
   before you ship to a store. A **release** build that still has the Test Store key keeps purchases
   disabled (the paywall shows a message instead of offerings).

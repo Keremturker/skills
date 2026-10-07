@@ -39,7 +39,7 @@ Endpoint resolution: env CMP_API > defaults.json.apiBase > apiBaseDefault.
     "dataStore": true,               // auto-true if theming || multiLang
     "detekt": true,
     "detektYamlContent": null,       // optional custom detekt.yml as a string
-    "purchases": true,               // RevenueCat paywall; ships a Test Store key — replace it before you ship
+    "purchases": true,               // custom paywall on RevenueCat; ships a Test Store key — replace it before you ship
     "ads": true,                     // AdMob banner/interstitial/rewarded (Google test IDs) + UMP/ATT consent
     "room": false                    // Room KMP database (core/room) + a Notes demo; only for a local database / offline storage, not preferences
   },
@@ -70,7 +70,7 @@ Kotlin hard keywords (`kotlinHardKeywords`): `as`, `break`, `class`, `continue`,
 - `purchases` and `ads` are independent. With both on, an active premium entitlement hides the ads.
 
 ## Monetization (`purchases`, `ads`)
-- `purchases` → `core/purchases` (RevenueCat KMP) + a paywall screen in `feature/monetization`.
+- `purchases` → `core/purchases` (RevenueCat KMP behind `PurchasesManager`: `offer()`, `purchase(packageId)`, `restore()`) + a custom Compose paywall and `FirstLaunchPaywall()` in `feature/monetization`.
   The project ships with a RevenueCat **Test Store** API key: replace it with your own platform keys
   before you ship to a store. A **release** build that still has the Test Store key keeps purchases
   disabled (the paywall shows a message instead of offerings).
@@ -119,10 +119,10 @@ Kotlin hard keywords (`kotlinHardKeywords`): `as`, `break`, `class`, `continue`,
 - `core/designsystem`: if theming || multiLang (theme (palette + KtTheme) and/or LocalStringResources)
 - `core/multilang`: if multiLang (i18n / localization)
 - `core/database`: if dataStore (DataStore persistence; with theming also the saved Light/Dark/System choice (DarkModeManager))
-- `core/purchases`: if purchases (RevenueCat KMP (Test Store key: replace before you ship))
+- `core/purchases`: if purchases (offer / purchase / restore API, RevenueCat KMP (Test Store key: replace before you ship))
 - `core/ads`: if ads (AdMob banner/interstitial/rewarded + UMP/ATT consent (test IDs))
 - `core/room`: if room (Room KMP database (bundled SQLite): AppDatabase, DAOs, schemas/)
-- `feature/monetization`: if purchases || ads (paywall (RevenueCat) and/or ads demo screens)
+- `feature/monetization`: if purchases || ads (custom paywall (Compose) and/or ads demo)
 - `feature/notes`: if room (Notes demo screen on Room (blank only; showcase uses Room for favorites))
 - `detekt/`: if detekt
 - showcase adds: feature/home, feature/monetization, feature/onboarding

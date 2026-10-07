@@ -3,7 +3,7 @@
     "by": "scripts/sync-contract.sh",
     "date": "2026-10-07"
   },
-  "contractVersion": "64db51649cc6",
+  "contractVersion": "483daf037e5e",
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
     "generate": "/api/generate",
@@ -287,7 +287,7 @@
         "requires": [
           "purchases"
         ],
-        "note": "RevenueCat KMP (Test Store key: replace before you ship)"
+        "note": "offer / purchase / restore API, RevenueCat KMP (Test Store key: replace before you ship)"
       },
       "core/ads": {
         "requires": [
@@ -308,7 +308,7 @@
           "purchases",
           "ads"
         ],
-        "note": "paywall (RevenueCat) and/or ads demo screens"
+        "note": "custom paywall (Compose) and/or ads demo"
       },
       "feature/notes": {
         "requires": [
