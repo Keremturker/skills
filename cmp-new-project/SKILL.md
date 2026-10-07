@@ -165,6 +165,9 @@ purchases disabled and the paywall shows a message); if it has `core/ads`, say i
 uses Google's test ad unit IDs and asks for UMP/ATT consent on the first visit to the
 ads screen (a real app should ask at launch; the EEA consent debug geography is
 debug-only). If it has `feature/notes`, say Notes is a demo: replace it or remove it.
+Add one line for deep links: "deep link: `<scheme>://`" (scheme = project name in lower
+case; showcase opens `<scheme>://user/{username}` and `<scheme>://settings`, blank opens
+`<scheme>://` and `<scheme>://<module>` for each custom module).
 Offer to persist any changed preferences
 (`packagePrefix`, `outputDir`, `minSdk`, `iosVersion`, `ide`, `openIde`,
 `autoBuildAndroid`, `autoRunIos`) back to `defaults.json`.
