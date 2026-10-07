@@ -3,7 +3,7 @@
 Lets your main Claude Code session offer to hand a self-contained job to a **second Claude
 Code account** on the same machine — for example to use that account's quota. The second
 account runs headless (`claude -p`) under its own settings and policy, you watch it live in
-a side cmux pane, and the report comes back into your main session. Nothing is delegated
+its own cmux workspace, and the report comes back into your main session. Nothing is delegated
 without your explicit yes. Write jobs run in the second account's `auto` permission mode:
 edits are allowed and its own classifier approves safe shell commands, denying risky ones
 (`DELEGATE_PERMISSION_MODE=acceptEdits` allows edits only). Ro jobs get the read tools only.
@@ -66,7 +66,7 @@ branch and a tag is refused (exit 2). Your own git hooks do not run when the wor
 
 ## Requirements
 
-- Claude Code CLI, `jq`, `git`; macOS or Linux. `cmux` is optional (live side pane).
+- Claude Code CLI, `jq`, `git`; macOS or Linux. `cmux` is optional (live view in its own workspace).
 - A second account logged in under its own config dir, e.g.:
 
   ```bash
@@ -112,7 +112,7 @@ one (`id`, `mode`, `exit_code`, `is_error: true`, ...) is written instead.
 `watch.sh <job dir>` returns once `meta.json` appears: exit 0 if the job finished cleanly (no
 error, no denied tool call, no failed commit), exit 2 if it finished but needs a look. It exits 1
 with "job process is gone without meta.json" if the process in `pid` dies first (e.g. it was
-SIGKILLed). The side pane the skill opens closes itself 5 seconds after exit 0 and otherwise
+SIGKILLed). The workspace the skill opens closes itself 5 seconds after exit 0 and otherwise
 waits for Enter.
 
 ## Usage report

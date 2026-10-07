@@ -3,7 +3,7 @@ name: account-delegate
 description: >-
   Offer to hand a self-contained job (analysis, research, review, or a code change in an
   isolated git worktree) to a second Claude Code account configured on this machine, run it
-  headless in a side cmux pane, and bring the report back into this session. Use when the
+  headless in its own cmux workspace, and bring the report back into this session. Use when the
   user wants to spend the second account's quota, says "şirket hesabına pasla", "ikinci hesaba pasla", "bunu diğer
   hesaba yaptır", "delegate this to the other account", "planı şirket hesabıyla yürüt", "execute this plan on the other account", or when you are about to start a
   sizeable, self-contained job and the second account is configured. Also offers to execute a written implementation plan task by task on the second account while this session reviews every task. Never delegates
@@ -107,14 +107,17 @@ Start it with the Bash tool and `run_in_background: true`:
 Always pass `--base` in a git repo; omit it only for a `--cwd` outside any git repo (ro only).
 
 Read the background output until the first line `JOB_DIR=<path>` appears, then open the
-live view next to this session (skip this step if `cmux` is not available or
+live view in a new background cmux workspace, so this session's layout stays as it is (skip this step if `cmux` is not available or
 `CMUX_SURFACE_ID` is unset):
 
 ```bash
-cmux new-split right --focus false --command "~/.claude/skills/account-delegate/scripts/watch.sh '<JOB_DIR>' && { printf '\nClosing in 5s'; sleep 5; } || { printf '\nPress Enter to close'; read _; }"
+cmux workspace create --name "delegate · <short label>" --focus false --command "~/.claude/skills/account-delegate/scripts/watch.sh '<JOB_DIR>' && { printf '\nClosing in 5s'; sleep 5; } || { printf '\nPress Enter to close'; read _; }; cmux close-workspace --workspace \"\$CMUX_WORKSPACE_ID\""
 ```
 
-Tell the user in one line that the job is running in the side pane. Do not poll; you are
+`<short label>` is a few words naming the job (e.g. `Task 3: navigation`). The workspace closes
+itself when the job ends: 5 seconds after a clean finish, otherwise after Enter.
+
+Tell the user in one line that the job is running in the "delegate · <short label>" workspace. Do not poll; you are
 notified when the background command exits. Meanwhile you may continue other work that does
 not touch the same files.
 
@@ -245,7 +248,7 @@ worktree is always `<PLAN_DIR>/worktree`.
    files (CLAUDE.md, AGENTS.md, style/convention docs) that apply to this task, copied in, since
    the second account may not load them; one line per finished task; "if you cannot run a build
    or test command, list it under Blocked".
-2. **Run** with `run_in_background: true`, then open the side pane as in section 4:
+2. **Run** with `run_in_background: true`, then open the live workspace as in section 4:
 
    ```bash
    ~/.claude/skills/account-delegate/scripts/delegate.sh --mode write --plan "<PLAN_DIR>" \
