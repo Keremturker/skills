@@ -1,9 +1,26 @@
 ---
 name: cmp-testing
 description: Use when adding or fixing unit tests in this Compose Multiplatform project — tests for a ViewModel, use case, repository or mapper, locking down a bug, adding commonTest dependencies to a module of an older project that has none — or when the test gate is red, counts zero tests, or a test fails or hangs.
+context: fork
+background: false
+model: sonnet
+argument-hint: "<class, module or bug to test, or the red test gate's report>"
 ---
 
 # Unit tests
+
+## Input and report
+
+You run in your own subagent and did not see the caller's conversation.
+
+- Input: `$ARGUMENTS` — the class, module or bug to test, or the red test gate's report. Read
+  `CLAUDE.md` and the files involved yourself; for any Kotlin you write, follow
+  `../cmp-code-rules/SKILL.md` (path relative to this skill's folder).
+- Application code that is not a test, a fake or a test dependency is not yours to change: when a
+  test fails because the code under test is wrong, report the failing test and the line in the
+  code, do not change that code.
+- Your final message is the report, nothing else: files changed (one line each), the gate you ran
+  and its result, and what is still open with file:line and why. No raw log.
 
 ## 1. Where tests run (measured on apps generated from this template)
 

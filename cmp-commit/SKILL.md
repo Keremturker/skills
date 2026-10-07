@@ -3,6 +3,7 @@ name: cmp-commit
 description: Use when the owner explicitly asks to commit work in this project — reading the diff, proposing atomic commits, running the finish gates, staging specific files and writing a Conventional Commits message. Commits only; never pushes unless separately asked.
 disable-model-invocation: true
 argument-hint: "[scope or message hint]"
+model: sonnet
 ---
 
 # Commit
@@ -48,8 +49,8 @@ git diff --staged
 
 ## 4. Gates first
 
-- Run the gates listed in `CLAUDE.md` under *Definition of done* (`cmp-verify`). If the owner asks
-  for a quick commit, run at least the Android gate and, when the project has it, detekt.
+- Run the gates with `cmp-gates` (all of them; for a quick commit the owner asked for, at least
+  `cmp-gates android detekt`, detekt only when the project has it).
 - A red gate means no commit. Tell the owner which gate failed and the first error line.
 
 ## 5. Stage by name

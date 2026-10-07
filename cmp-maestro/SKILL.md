@@ -1,9 +1,25 @@
 ---
 name: cmp-maestro
 description: Use when writing or repairing a Maestro flow for this app — the .maestro/walkthrough.yaml that Compass records the demo video from, a regression flow, or a flow that fails on selectors or timing — and when adding testTags so elements can be found by id. Also for an exploratory on-device check of a screen in an interactive session.
+context: fork
+background: false
+model: sonnet
+argument-hint: "<flow (walkthrough or a regression flow) and the screens it covers>"
 ---
 
 # Maestro flows and test tags
+
+## Input and report
+
+You run in your own subagent and did not see the caller's conversation.
+
+- Input: `$ARGUMENTS` — the flow and the screens it covers. Read `CLAUDE.md` and the files involved
+  yourself; for any Kotlin you write, follow `../cmp-code-rules/SKILL.md` (path relative to this
+  skill's folder).
+- Application code that is not a `testTag`, a `<Name>TestTags` object or `testTagsAsResourceId`
+  is not yours to change.
+- Your final message is the report, nothing else: files changed (one line each), the gate you ran
+  and its result, and what is still open with file:line and why. No raw log.
 
 After the coding step Compass installs the signed release APK on an Android emulator, starts a
 screen recording and plays `.maestro/walkthrough.yaml`. It then builds the iOS app for an iPhone
@@ -163,6 +179,9 @@ appId: com.example.cookbook
 
 ## 5. When a flow fails (interactive)
 
+In a forked run there is no one to ask: do the check and put what you would have asked under
+*Open* in the report.
+
 - Classify the failure: `SELECTOR_MISS` (the id is wrong or not visible yet), `RACE` (the step ran
   before the screen was ready), `TAG_MISSING` (the element has no tag), `CRASH` (the app died).
 - Fix `SELECTOR_MISS` and `RACE` in the flow: a better selector, a wait, a scroll. At most two
@@ -173,6 +192,9 @@ appId: com.example.cookbook
 - The same step failing twice: stop and report `FLOW / STEP / CLASS / HINT / ARTIFACTS`.
 
 ## 6. Exploration mode (interactive only)
+
+In a forked run there is no one to ask: do the check and put what you would have asked under
+*Open* in the report.
 
 For a quick look at a screen on a device when no permanent flow is needed.
 
