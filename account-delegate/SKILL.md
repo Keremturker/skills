@@ -85,8 +85,9 @@ not visible to the job. Wait for the answer.
 
 - **Model.** Read-only jobs (analysis, research, review) run with `--model sonnet`; write jobs and
   plan execution with `--model opus`. The offer names it ("…şirket hesabında Sonnet ile
-  çalıştırayım mı?"). If the user names another model, use that. `DELEGATE_MODEL` set in the
-  environment replaces these defaults.
+  çalıştırayım mı?"). If the user names another model, use that. If `DELEGATE_MODEL` is set in
+  the environment, omit `--model` so that it applies (the flag would win), and name its value in
+  the offer.
 
 ## 3. Write the brief
 
