@@ -175,11 +175,11 @@ Details and runtime diagnosis: `references/koin.md`.
   starts at its own first destination, not at `GuideDestination` (section 4).
 - No DTO or entity appears in `domain` or `presentation`.
 - The screen's `<Name>TestTags` exist and are applied.
-- The Android gate is green; the iOS gate runs on the schedule in `cmp-verify`, section 2.
+- The Android gate is green (`cmp-gates android`); the iOS gate runs on the schedule in `cmp-verify`, section 2.
 
 ## Headless runs
 
-- Write the files with Write and Edit. Run the Android gate once the screen or module's files are in
-  place, not after every file and not only at the end (`cmp-verify`, section 2).
+- Write the files with Write and Edit. Run the Android gate (`cmp-gates android`) once the screen or
+  module's files are in place, not after every file and not only at the end (`cmp-verify`, section 2).
 - Do not ask which layers to create. Choose by need and list the choice under `Assumptions` in
   your final message.
