@@ -3,7 +3,7 @@
     "by": "scripts/sync-contract.sh",
     "date": "2026-10-06"
   },
-  "contractVersion": "b6eab3b2e82e",
+  "contractVersion": "95780143fc68",
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
     "generate": "/api/generate",
@@ -229,6 +229,7 @@
       "shared",
       "core/about",
       "core/domain",
+      "core/image",
       "core/logging",
       "core/presentation",
       "core/navigation",
@@ -236,13 +237,13 @@
       "core/update",
       "build-logic"
     ],
-    "alwaysNote": "shared wires Koin (DI) + Navigation, which are always included; core/logging sets up Kermit logging, core/review asks for in-app reviews and core/about shows the version, legal links and licences in every project, core/update checks for app updates.",
+    "alwaysNote": "shared wires Koin (DI) + Navigation, which are always included; core/logging sets up Kermit logging, core/review asks for in-app reviews and core/about shows the version, legal links and licences in every project, core/update checks for app updates, core/image loads images with Coil.",
     "coreModules": {
       "core/network": {
         "requires": [
           "network"
         ],
-        "note": "Ktor HTTP client"
+        "note": "Ktor HTTP client; Coil network images"
       },
       "core/designsystem": {
         "requiresAny": [
