@@ -51,6 +51,16 @@ which opens the module's destination. `GuideScreen` is a developer placeholder t
 until you replace it (section 4), not a screen of the app. Projects generated before the blank
 guide screen release have no `<Name>Entry` and no `FeatureEntry`.
 
+From the deep link template release on, every generated module also has
+`presentation/navigation/<Name>DeepLink.kt`: a `DeepLinkRoute` (`core/navigation`) with
+`@Single(binds = [DeepLinkRoute::class])`, `@Named("<Name>DeepLink")` and `pattern = "<name>"`, so
+`<scheme>://<name>` (scheme = project name in lower case) opens the module's destination. To link
+to a screen with an argument, set `pattern = "<name>/{id}"` and return the destination from
+`fun destination(arguments: Map<String, String>): NavigationCommand.Destination?`
+(`arguments["id"]`); return `null` for a missing or invalid value, and the link only opens the app.
+Validate the argument (a link is user input). Do not use `navDeepLink`; links go through
+`DeepLinkHandler` and `NavigationManager`.
+
 - Packages follow the generated files: `<rootPackage>.feature.<name>.<layer>` (projects generated
   before the blank guide screen release: `<rootPackage>.<name>.<layer>`) plus the sub-package
   (`...feature.<name>.presentation.ui`), all lowercase. Copy the root from `Screens.kt`; do not

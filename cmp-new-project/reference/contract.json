@@ -1,9 +1,9 @@
 {
   "_generated": {
     "by": "scripts/sync-contract.sh",
-    "date": "2026-10-06"
+    "date": "2026-10-07"
   },
-  "contractVersion": "95780143fc68",
+  "contractVersion": "6f2adf50c4d5",
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
     "generate": "/api/generate",

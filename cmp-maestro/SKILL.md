@@ -150,6 +150,16 @@ appId: com.example.cookbook
   a time.
 - `launchApp` with `clearState` wipes stored data every run; a flow that relies on earlier data
   must create it first.
+- A deep link opens a screen directly: `openLink` with the project's scheme (project name in lower
+  case), then wait for the screen's `ROOT`:
+
+  ```yaml
+  - openLink: "cookbook://recipes"
+  - extendedWaitUntil:
+      visible:
+        id: "recipes_root"
+      timeout: 10000
+  ```
 
 ## 5. When a flow fails (interactive)
 
