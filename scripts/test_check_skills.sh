@@ -4,7 +4,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 CHECK="$HERE/check-skills.sh"
 fail=0
 check() { local d="$1"; shift; if "$@"; then echo "ok: $d"; else echo "FAIL: $d"; fail=1; fi; }
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/check-skills.XXXXXX")" && [ -d "$TMP" ] || { echo "FAIL: mktemp"; exit 1; }
+T="${TMPDIR:-/tmp}"; TMP="$(mktemp -d "${T%/}/check-skills.XXXXXX")" && [ -d "$TMP" ] || { echo "FAIL: mktemp"; exit 1; }
 skill() { # $1 = dir, rest = frontmatter lines
   local d="$TMP/$1"; shift; mkdir -p "$d"
   { echo ---; printf '%s\n' "$@"; echo ---; echo; echo "# x"; } > "$d/SKILL.md"

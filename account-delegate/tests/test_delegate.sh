@@ -12,7 +12,7 @@ has_arg() { grep -qxF -- "$1" "$FAKE_LOG/args"; }
 lacks_arg() { ! grep -qF -- "$1" "$FAKE_LOG/args"; }
 meta() { jq -r "$1" "$JOB/meta.json"; }
 
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/delegate-test.XXXXXX")" && [ -d "$TMP" ] || { echo "FAIL: mktemp"; exit 1; }
+T="${TMPDIR:-/tmp}"; TMP="$(mktemp -d "${T%/}/delegate-test.XXXXXX")" && [ -d "$TMP" ] || { echo "FAIL: mktemp"; exit 1; }
 export DELEGATE_CLAUDE_BIN="$HERE/fake-claude.sh"
 export DELEGATE_CLAUDE_CONFIG_DIR="$TMP/second-account"
 export DELEGATE_CACHE_DIR="$TMP/cache"

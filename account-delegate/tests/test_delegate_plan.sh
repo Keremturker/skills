@@ -8,7 +8,7 @@ meta() { jq -r "$1" "$JOB/meta.json"; }
 run() { OUT="$(bash "$DELEGATE" "$@" 2>"$TMP/err")"; CODE=$?; JOB="$(sed -n 's/^JOB_DIR=//p' <<<"$OUT" | head -n 1)"; }
 njobs() { ls "$1/jobs" 2>/dev/null | wc -l | tr -d ' '; }
 
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/delegate-test.XXXXXX")" && [ -d "$TMP" ] || { echo "FAIL: mktemp"; exit 1; }
+T="${TMPDIR:-/tmp}"; TMP="$(mktemp -d "${T%/}/delegate-test.XXXXXX")" && [ -d "$TMP" ] || { echo "FAIL: mktemp"; exit 1; }
 export DELEGATE_CLAUDE_BIN="$HERE/fake-claude.sh" DELEGATE_CLAUDE_CONFIG_DIR="$TMP/second" \
        DELEGATE_CACHE_DIR="$TMP/cache" FAKE_LOG="$TMP/log"
 export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
@@ -226,6 +226,8 @@ FAKE_MODE=write FAKE_FILE=m3.txt run --mode write --plan "$PM" --cwd "$REPO" --b
 check "later job with a different --model exits 2" test "$CODE" -eq 2
 FAKE_MODE=write FAKE_FILE=m4.txt run --mode write --plan "$PM" --cwd "$REPO" --brief "$B" --model opus
 check "later job with the same --model exits 0" test "$CODE" -eq 0
+FAKE_MODE=write FAKE_FILE=m5.txt DELEGATE_MODEL=haiku run --mode write --plan "$PM" --cwd "$REPO" --brief "$B"
+check "later job ignores a different DELEGATE_MODEL" bash -c 'test "$1" -eq 0 && grep -qxF opus "$2" && ! grep -qxF haiku "$2"' _ "$CODE" "$FAKE_LOG/args"
 
 rm -rf "${TMP:?}"
 exit $fail

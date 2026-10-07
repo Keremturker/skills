@@ -9,7 +9,8 @@
 #   delegate/<plan id> (<plan id> = basename of <plan dir>). The first job creates the plan and
 #   needs --base; later jobs reuse it and refuse --base. Each job gets <plan dir>/jobs/<n>/ and
 #   adds at most one commit. --resume continues a session of an earlier job of the same plan.
-#   --model <alias|id> (or DELEGATE_MODEL): the second account's model; unset = its default. A plan keeps the model of its first job.
+#   --model <alias|id> (or DELEGATE_MODEL): the second account's model; unset = its default. A plan keeps the model of its first job
+#   (a different --model on a later job is refused; DELEGATE_MODEL is ignored there).
 # Exit: 0 success, 1 job failed, 2 usage error. First stdout line: JOB_DIR=<path>.
 set -uo pipefail
 
@@ -105,8 +106,9 @@ fi
 case "$TITLE" in *$'\n'*|*$'\r'*) die "--title must be a single line" ;; esac
 [ "${#TITLE}" -le 200 ] || die "--title is longer than 200 characters"
 case "$RESUME" in -*|*[!A-Za-z0-9_-]*) die "invalid --resume: $RESUME" ;; esac
-if [ "$MODEL_GIVEN" -eq 0 ] && [ -n "${DELEGATE_MODEL:-}" ]; then MODEL="$DELEGATE_MODEL"; MODEL_GIVEN=1; fi
-if [ "$MODEL_GIVEN" -eq 1 ]; then
+# MODEL_GIVEN: 0 none, 1 --model, 2 DELEGATE_MODEL (a default only: an existing plan ignores it)
+if [ "$MODEL_GIVEN" -eq 0 ] && [ -n "${DELEGATE_MODEL:-}" ]; then MODEL="$DELEGATE_MODEL"; MODEL_GIVEN=2; fi
+if [ "$MODEL_GIVEN" -ne 0 ]; then
   case "$MODEL" in ''|-*|*[!A-Za-z0-9._\[\]-]*) die "invalid --model (letters, digits, . _ - [ ], not starting with -): $MODEL" ;; esac
 fi
 
