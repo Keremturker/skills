@@ -74,6 +74,11 @@ const keywordMap = {
 const templateKeywords = {
   showcase: ['showcase', 'example app', 'full example', 'sample app', 'demo app', 'örnek uygulama', 'örnek proje', 'her şey', 'hepsi', 'dolu']
 };
+// Top-level options (not featuresConfig: naming them does not switch the template to blank).
+// No bare 'ci': a substring of 'decision', 'special', 'efficient'.
+const projectOptionKeywords = {
+  ci: ['github actions', 'continuous integration', 'ci pipeline', 'ci/cd', 'ci workflow', 'sürekli entegrasyon']
+};
 // --- Assemble the contract (everything except the volatile _generated block) -
 function buildContract() {
   const f = contractFacts();
@@ -108,6 +113,8 @@ function buildContract() {
     templateTypes: f.templateTypes,
     featuresConfigKeys: f.featuresConfigKeys,
     dependencyRules: f.dependencyRules,
+    projectOptions: f.projectOptions,
+    projectOptionKeywords,
     keywordMap,
     templateKeywords,
     anatomy: f.anatomy
@@ -148,6 +155,7 @@ Endpoint resolution: ${c.endpointResolution}.
   "minSdk": "${L.minSdkMin}",                    // numeric string (1–${X.minSdk} digits) in [${L.minSdkMin}..${L.minSdkMax}]
   "iosVersion": "${L.iosVersionMin}",              // ${R.iosVersionFormat} in [${L.iosVersionMin}..${L.iosVersionMax}]
   "templateType": "blank",           // "blank" | "showcase"
+  "ci": false,                       // GitHub Actions CI (.github/workflows/ci.yml: pull requests + manual runs); every template; default false
   "featuresConfig": {                // used only for "blank"; ignored for "showcase"
     "network": true,
     "networkInspector": true,        // requires network=true

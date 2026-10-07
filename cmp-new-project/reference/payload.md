@@ -29,6 +29,7 @@ Endpoint resolution: env CMP_API > defaults.json.apiBase > apiBaseDefault.
   "minSdk": "24",                    // numeric string (1–2 digits) in [24..36]
   "iosVersion": "15.0",              // ^\d+(\.\d+){1,2}$ in [15.0..26.2]
   "templateType": "blank",           // "blank" | "showcase"
+  "ci": false,                       // GitHub Actions CI (.github/workflows/ci.yml: pull requests + manual runs); every template; default false
   "featuresConfig": {                // used only for "blank"; ignored for "showcase"
     "network": true,
     "networkInspector": true,        // requires network=true

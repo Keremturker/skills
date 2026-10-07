@@ -3,7 +3,7 @@
     "by": "scripts/sync-contract.sh",
     "date": "2026-10-07"
   },
-  "contractVersion": "6f2adf50c4d5",
+  "contractVersion": "64db51649cc6",
   "apiBaseDefault": "https://cmpose.dev",
   "endpoints": {
     "generate": "/api/generate",
@@ -123,6 +123,25 @@
         "multiLang"
       ]
     }
+  },
+  "projectOptions": {
+    "ci": {
+      "default": false,
+      "templates": [
+        "blank",
+        "showcase"
+      ]
+    }
+  },
+  "projectOptionKeywords": {
+    "ci": [
+      "github actions",
+      "continuous integration",
+      "ci pipeline",
+      "ci/cd",
+      "ci workflow",
+      "sürekli entegrasyon"
+    ]
   },
   "keywordMap": {
     "network": [

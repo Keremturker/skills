@@ -77,6 +77,10 @@ there if needed, or overrides them up front in their request.
   of structured data; DataStore (`dataStore`) is for preferences.** `room` implies
   nothing and adds `core/room` plus, in blank, a `feature/notes` demo (so `notes` is a
   reserved module name; see `reference/payload.md` → *Room*).
+- **CI → `ci: false`** by default, for both templates. Set `ci: true` only when the
+  request asks for CI / GitHub Actions (`projectOptionKeywords.ci`). It is a top-level
+  field, not a `featuresConfig` flag, so it never switches the template to blank.
+  Never asked.
 
 ## 2. Ask ONLY these four — ONE at a time, in order
 Ask one question → wait → validate (below) → ask the next. **Don't batch. Ask
@@ -105,6 +109,7 @@ changed here.** Mark forced/auto modules.
 Project: Sepetim          Package: dev.cmpose.sepetim
 App:     Sepetim          Template: showcase (default — change if you want)
 Min SDK: 24 (default)   iOS: 15.0 (default)   Output: ~/StudioProjects/Sepetim
+CI:      off (default; GitHub Actions on pull requests + manual runs)
 Versions: Kotlin 2.x · AGP 9.x · CMP 1.x · Gradle 9.x · JDK 21 (live)
 
 Sepetim/                              (showcase: full example app)
@@ -123,6 +128,7 @@ Get a single yes/no before generating.
   `templateType:"showcase"`, `features` = the requested custom modules (`[]` if none;
   a `featuresConfig` is harmless).
   **blank** → the chosen `featuresConfig` + `features`.
+  Always send `ci` (`false` unless the request asked for CI).
 - Write the payload to a temp file (`mktemp`), then run
   `scripts/generate.sh <payload.json> <outputDir> <projectName>`.
 - Handle the exit code:
