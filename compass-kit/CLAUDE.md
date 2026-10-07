@@ -43,7 +43,9 @@ video from it.
 - Maestro flow or testTags: `cmp-maestro`
 - Unit tests: `cmp-testing`
 - detekt findings: `cmp-detekt` (only when detekt is set up)
-- Build failure, or before saying you are done: `cmp-verify`
+- Run the gates (after a screen or module, before saying you are done): `cmp-gates`; it returns
+  a short report and fixes only mechanical failures
+- A failure `cmp-gates` left open, or when and how to build: `cmp-verify`
 - The owner asks for a commit: `cmp-commit` (follow its steps even if it is not auto-loaded)
 
 ## Rules that break the app most often

@@ -83,6 +83,12 @@ one, just **mod: salt-okur analiz**). The offer always names the base, and the r
 mode; if the base is not the current branch, or the tree is dirty, add that uncommitted work is
 not visible to the job. Wait for the answer.
 
+- **Model.** Read-only jobs (analysis, research, review) run with `--model sonnet`; write jobs and
+  plan execution with `--model opus`. The offer names it ("…şirket hesabında Sonnet ile
+  çalıştırayım mı?"). If the user names another model, use that. If `DELEGATE_MODEL` is set in
+  the environment, omit `--model` so that it applies (the flag would win), and name its value in
+  the offer.
+
 ## 3. Write the brief
 
 Write it to a temp file (e.g. in your scratchpad). It must stand alone — the other session
@@ -101,7 +107,7 @@ Write the brief in the user's language.
 Start it with the Bash tool and `run_in_background: true`:
 
 ```bash
-~/.claude/skills/account-delegate/scripts/delegate.sh --mode <ro|write> --cwd "<project dir>" --brief "<brief file>" --base "<base ref>"
+~/.claude/skills/account-delegate/scripts/delegate.sh --mode <ro|write> --cwd "<project dir>" --brief "<brief file>" --base "<base ref>" --model <sonnet|opus>
 ```
 
 Always pass `--base` in a git repo; omit it only for a `--cwd` outside any git repo (ro only).
@@ -252,9 +258,10 @@ worktree is always `<PLAN_DIR>/worktree`.
 
    ```bash
    ~/.claude/skills/account-delegate/scripts/delegate.sh --mode write --plan "<PLAN_DIR>" \
-     --cwd "<repo dir>" --brief "<brief file>" --title "Task <n>: <name>" [--base "<base ref>"]
+     --cwd "<repo dir>" --brief "<brief file>" --title "Task <n>: <name>" [--base "<base ref>"] [--model <sonnet|opus>]
    ```
 
+   Pass `--model` on the first job only; later jobs inherit it (a different value is refused).
    `--base` only for the first job of the plan (it creates `PLAN_DIR/plan.json`, the worktree
    `PLAN_DIR/worktree` and branch `delegate/<plan id>`, plan id = basename of `PLAN_DIR`); every
    later job must omit it and pass the same `--cwd`. Exit 2 with no `JOB_DIR=` is a refusal

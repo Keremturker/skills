@@ -236,7 +236,7 @@ code. "No references found" is not a reason to delete it.
 
 - Every new or changed file follows the layer, visibility and KMP rules above.
 - The `references/self-review.md` pass is done; each finding is fixed or reported with its reason.
-- The gates in `cmp-verify` are green.
+- The gates are green (the last `cmp-gates` report).
 
 ## Headless runs
 

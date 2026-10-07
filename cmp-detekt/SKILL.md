@@ -1,9 +1,25 @@
 ---
 name: cmp-detekt
 description: Use when the detekt gate is red, or before finishing a change in a project that has detekt — running ./gradlew detekt from the template's convention plugin with the owner's detekt/detekt.yml, auto-correcting formatting first, then fixing the remaining findings at their cause, without suppressions, baselines or config changes.
+context: fork
+background: false
+model: sonnet
 ---
 
 # detekt
+
+## Input and report
+
+You run in your own subagent and did not see the caller's conversation.
+
+- Input: `$ARGUMENTS` — which modules, or empty for all. Read `CLAUDE.md` and the files involved
+  yourself; for any Kotlin you write, follow `../cmp-code-rules/SKILL.md` (path relative to this
+  skill's folder).
+- Application code that is not a mechanical detekt fix (formatting, an import, a constant, a
+  visibility modifier) is not yours to change: a finding that needs a function split, a rename
+  across files or a behaviour change is reported, not fixed.
+- Your final message is the report, nothing else: files changed (one line each), the gate you ran
+  and its result, and what is still open with file:line and why. No raw log.
 
 Only for projects that have `build-logic/src/main/kotlin/convention/DetektConventionPlugin.kt`.
 Without that file the project has no detekt gate and this skill does not apply.

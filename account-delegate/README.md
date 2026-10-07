@@ -91,6 +91,10 @@ Link it into your **main** account's skills only — not into the second account
 | `DELEGATE_MAX_TURNS` | `40` | Turn limit per job |
 | `DELEGATE_PERMISSION_MODE` | `auto` | Write-mode permission mode: `auto` or `acceptEdits` (anything else: exit 2) |
 
+- `--model <alias|id>` / `DELEGATE_MODEL` — model for the second account's run (flag wins; unset =
+  that account's default). A plan keeps its first job's model: a different `--model` on a later job
+  is refused, `DELEGATE_MODEL` is ignored there. Recorded as `model` in `meta.json`.
+
 The child process does not inherit your main session's identity: every `CLAUDE_CODE_*` and
 every `ANTHROPIC_*` variable (API key, auth token, base URL, models, custom headers, ...)
 plus `CLAUDECODE` are dropped, so the second account always uses its own login.

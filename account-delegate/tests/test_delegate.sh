@@ -12,7 +12,7 @@ has_arg() { grep -qxF -- "$1" "$FAKE_LOG/args"; }
 lacks_arg() { ! grep -qF -- "$1" "$FAKE_LOG/args"; }
 meta() { jq -r "$1" "$JOB/meta.json"; }
 
-TMP="$(mktemp -d)"
+T="${TMPDIR:-/tmp}"; TMP="$(mktemp -d "${T%/}/delegate-test.XXXXXX")" && [ -d "$TMP" ] || { echo "FAIL: mktemp"; exit 1; }
 export DELEGATE_CLAUDE_BIN="$HERE/fake-claude.sh"
 export DELEGATE_CLAUDE_CONFIG_DIR="$TMP/second-account"
 export DELEGATE_CACHE_DIR="$TMP/cache"
@@ -217,5 +217,23 @@ WOUT="$(perl -e 'alarm 10; exec @ARGV' bash "$HERE/../scripts/watch.sh" "$JOB")"
 check "watch stops after SIGKILL (exit 1, not timeout)" test "$wcode" -eq 1
 check "watch says the job process is gone" grep -qF 'job process is gone without meta.json' <<<"$WOUT"
 
-rm -rf "$TMP"
+# --- model
+for bad in -x 'a b' 'x;y' ''; do
+  run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md" --model "$bad"
+  check "--model '$bad' exits 2" test "$CODE" -eq 2
+done
+DELEGATE_MODEL='x;y' run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md"
+check "invalid DELEGATE_MODEL exits 2" test "$CODE" -eq 2
+FAKE_MODE=ok run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md"
+check "no model: --model not passed" lacks_arg --model
+check "no model: meta.model is null" test "$(meta .model)" = null
+FAKE_MODE=ok run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md" --model sonnet
+check "--model sonnet is passed" bash -c 'grep -qxF -- --model "$1" && grep -qxF sonnet "$1"' _ "$FAKE_LOG/args"
+check "meta.model is sonnet" test "$(meta .model)" = sonnet
+FAKE_MODE=ok DELEGATE_MODEL=haiku run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md"
+check "DELEGATE_MODEL is used without the flag" has_arg haiku
+FAKE_MODE=ok DELEGATE_MODEL=haiku run --mode ro --cwd "$TMP/proj" --brief "$TMP/brief.md" --model 'opus[1m]'
+check "flag wins over DELEGATE_MODEL" bash -c 'grep -qxF "opus[1m]" "$1" && ! grep -qxF haiku "$1"' _ "$FAKE_LOG/args"
+
+rm -rf "${TMP:?}"
 exit $fail
