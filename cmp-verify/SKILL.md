@@ -1,6 +1,6 @@
 ---
 name: cmp-verify
-description: Use when about to declare the app or a change finished, and whenever a Gradle build fails in this project — running the finish gates listed in CLAUDE.md (Android assemble, iOS simulator compile, detekt, tests) in order, reading their output correctly, and fixing the common Kotlin Multiplatform, KSP, Koin and Compose resources failures, including NoDefinitionFoundException at runtime.
+description: Use when deciding when to build, when fixing a Gradle, KSP, Koin or Compose resources failure that cmp-gates reported as open, or when reading gate output in this Compose Multiplatform project — the build schedule, how to read the output, and the recipes for common Kotlin Multiplatform failures, including NoDefinitionFoundException at runtime. The gates themselves are run with cmp-gates.
 ---
 
 # Verify and fix builds
@@ -9,6 +9,9 @@ description: Use when about to declare the app or a change finished, and wheneve
 
 Run the gates listed in `CLAUDE.md` under *Definition of done*, in that order.
 
+- Run them with `cmp-gates`: it runs them in a separate subagent and returns a short report, so
+  the Gradle log stays out of this session. Run a gate directly only to reproduce one failure
+  `cmp-gates` reported as open.
 - The list names the exact commands: the Android debug build, the iOS simulator compile, detekt
   (only when the project has it) and the test run. Run each one as written, as its own command.
   `CLAUDE.md` is the source of truth; do not substitute other task names.
@@ -77,7 +80,8 @@ Symptoms, causes and fixes: `references/failures.md`. The most frequent:
 
 ## Done when
 
-- Every gate from `CLAUDE.md` ran green in this session, after the last code change.
+- Every gate from `CLAUDE.md` ran green in this session, after the last code change (the last
+  `cmp-gates` report shows them all ✅).
 - The final summary lists each gate's command and result, with the test count for the test gate.
 - If a gate stays red: the summary gives its last error line and what was tried.
 

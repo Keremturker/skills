@@ -7,6 +7,7 @@
     "cmp-maestro",
     "cmp-testing",
     "cmp-verify",
+    "cmp-gates",
     "cmp-commit",
     { "name": "cmp-detekt", "requires": "detekt" }
   ],
