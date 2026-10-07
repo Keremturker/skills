@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs one job headless on a second Claude Code account and records it in a job dir.
-# Usage: delegate.sh --mode ro|write --cwd <dir> --brief <file> [--base <ref>] [--id <id>]
-#        delegate.sh --mode write --plan <plan dir> --cwd <dir> --brief <file> [--base <ref>] [--title <t>] [--resume <session id>]
+# Usage: delegate.sh --mode ro|write --cwd <dir> --brief <file> [--base <ref>] [--id <id>] [--model <m>]
+#        delegate.sh --mode write --plan <plan dir> --cwd <dir> --brief <file> [--base <ref>] [--title <t>] [--resume <session id>] [--model <m>]
 #   --base <ref> (branch, tag or commit) is required when --cwd is inside a git repo and refused
 #   otherwise. Every job in a git repo runs in its own worktree created from that ref; a job in
 #   a non-git directory is read-only and runs directly in --cwd.
@@ -9,10 +9,11 @@
 #   delegate/<plan id> (<plan id> = basename of <plan dir>). The first job creates the plan and
 #   needs --base; later jobs reuse it and refuse --base. Each job gets <plan dir>/jobs/<n>/ and
 #   adds at most one commit. --resume continues a session of an earlier job of the same plan.
+#   --model <alias|id> (or DELEGATE_MODEL): the second account's model; unset = its default. A plan keeps the model of its first job.
 # Exit: 0 success, 1 job failed, 2 usage error. First stdout line: JOB_DIR=<path>.
 set -uo pipefail
 
-usage() { echo "usage: delegate.sh --mode ro|write --cwd <dir> --brief <file> [--base <ref>] [--id <id>] | --mode write --plan <dir> --cwd <dir> --brief <file> [--base <ref>] [--title <t>] [--resume <session id>]" >&2; exit 2; }
+usage() { echo "usage: delegate.sh --mode ro|write --cwd <dir> --brief <file> [--base <ref>] [--id <id>] [--model <m>] | --mode write --plan <dir> --cwd <dir> --brief <file> [--base <ref>] [--title <t>] [--resume <session id>] [--model <m>]" >&2; exit 2; }
 die() { echo "delegate: $*" >&2; exit 2; }
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 wt_tampered() {   # true when the worktree or its .git file is not what `worktree add` made
@@ -71,7 +72,7 @@ release_lock() {
 }
 trap release_lock EXIT
 
-MODE="" CWD="" BRIEF="" ID="" BASE="" BASE_GIVEN=0 PLAN="" PLAN_ID="" TITLE="" RESUME=""
+MODE="" CWD="" BRIEF="" ID="" BASE="" BASE_GIVEN=0 PLAN="" PLAN_ID="" TITLE="" RESUME="" MODEL="" MODEL_GIVEN=0
 while [ $# -gt 0 ]; do
   [ $# -ge 2 ] || usage
   case "$1" in
@@ -83,6 +84,7 @@ while [ $# -gt 0 ]; do
     --plan) PLAN="$2" ;;
     --title) TITLE="$2" ;;
     --resume) RESUME="$2" ;;
+    --model) MODEL="$2"; MODEL_GIVEN=1 ;;
     *) usage ;;
   esac
   shift 2
@@ -103,6 +105,10 @@ fi
 case "$TITLE" in *$'\n'*|*$'\r'*) die "--title must be a single line" ;; esac
 [ "${#TITLE}" -le 200 ] || die "--title is longer than 200 characters"
 case "$RESUME" in -*|*[!A-Za-z0-9_-]*) die "invalid --resume: $RESUME" ;; esac
+if [ "$MODEL_GIVEN" -eq 0 ] && [ -n "${DELEGATE_MODEL:-}" ]; then MODEL="$DELEGATE_MODEL"; MODEL_GIVEN=1; fi
+if [ "$MODEL_GIVEN" -eq 1 ]; then
+  case "$MODEL" in ''|-*|*[!A-Za-z0-9._\[\]-]*) die "invalid --model (letters, digits, . _ - [ ], not starting with -): $MODEL" ;; esac
+fi
 
 CONFIG="${DELEGATE_CLAUDE_CONFIG_DIR:-$HOME/.claude-work}"
 [ -d "$CONFIG" ] || die "second account config dir not found: $CONFIG (set DELEGATE_CLAUDE_CONFIG_DIR)"
@@ -124,6 +130,11 @@ if [ -n "$PLAN" ] && [ -f "$PLAN/plan.json" ]; then
   PLAN_EXISTS=1
   [ "$BASE_GIVEN" -eq 0 ] || die "--base was fixed when plan $PLAN_ID was created; drop --base"
   [ "$(pj .cwd)" = "$CWD" ] || die "--cwd must be $(pj .cwd) for plan $PLAN_ID"
+  PLAN_MODEL="$(pj .model)"
+  if [ "$MODEL_GIVEN" -eq 1 ] && [ "$MODEL" != "$PLAN_MODEL" ]; then
+    die "--model was fixed to '${PLAN_MODEL:-default}' when plan $PLAN_ID was created; drop --model"
+  fi
+  MODEL="$PLAN_MODEL"
 fi
 TOP="" PREFIX="" START_BRANCH="" BASE_COMMIT="" IN_GIT=0
 if TOP="$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null)" && [ -n "$TOP" ]; then IN_GIT=1; else TOP=""; fi
@@ -208,7 +219,7 @@ write_meta() { # $1 = exit code of the claude run
     --argjson base_given "$([ "$BASE_GIVEN" -eq 1 ] && echo true || echo false)" \
     --argjson commit_failed "$COMMIT_FAILED" --argjson exit_code "$1" --slurpfile rs "$RESULT_FILE" \
     --arg plan_id "$PLAN_ID" --arg plan_dir "$PLAN" --arg job_n "$N" --arg title "$TITLE" \
-    --arg resumed_from "$RESUME" --arg parent_commit "$PARENT_COMMIT" --arg permission_mode "$RAN_MODE" --arg gitdir "$([ "$MODE" = write ] && echo "$GITDIR")" \
+    --arg resumed_from "$RESUME" --arg parent_commit "$PARENT_COMMIT" --arg permission_mode "$RAN_MODE" --arg model "$MODEL" --arg gitdir "$([ "$MODE" = write ] && echo "$GITDIR")" \
     --arg started "$STARTED" --arg finished "$(now)" '
     def opt: if . == "" then null else . end;
     ($rs[0] // null) as $r |
@@ -219,7 +230,7 @@ write_meta() { # $1 = exit code of the claude run
      commit_failed: $commit_failed, exit_code: $exit_code,
      plan_id: ($plan_id | opt), plan_dir: ($plan_dir | opt),
      job_n: (if $job_n == "" then null else ($job_n | tonumber) end),
-     title: ($title | opt), resumed_from: ($resumed_from | opt), parent_commit: ($parent_commit | opt), permission_mode: ($permission_mode | opt), gitdir: ($gitdir | opt),
+     title: ($title | opt), resumed_from: ($resumed_from | opt), parent_commit: ($parent_commit | opt), permission_mode: ($permission_mode | opt), model: ($model | opt), gitdir: ($gitdir | opt),
      is_error: (($r == null) or ($r.is_error == true) or ($exit_code != 0)),
      subtype: $r.subtype, num_turns: $r.num_turns, total_cost_usd: $r.total_cost_usd,
      permission_denials: ($r.permission_denials // []), session_id: $r.session_id,
@@ -279,9 +290,10 @@ case "$MODE" in
         if ! jq -n --arg id "$PLAN_ID" --arg repo "$TOP" --arg cwd "$CWD" --arg prefix "$PREFIX" \
             --arg branch "$BRANCH" --arg base "$BASE" --arg base_commit "$BASE_COMMIT" \
             --arg start_branch "$START_BRANCH" --arg gitdir "$GITDIR" --arg gitfile_hex "$GITFILE_HEX" \
-            --arg created "$(now)" \
+            --arg model "$MODEL" --arg created "$(now)" \
             '{id: $id, repo: $repo, cwd: $cwd, prefix: $prefix, branch: $branch, base: $base,
               base_commit: $base_commit, start_branch: (if $start_branch == "" then null else $start_branch end),
+              model: (if $model == "" then null else $model end),
               gitdir: $gitdir, gitfile_hex: $gitfile_hex, created_at: $created}' > "$PLAN/plan.json.tmp" 2>> "$JOB/stderr.log" \
            || ! mv "$PLAN/plan.json.tmp" "$PLAN/plan.json"; then
           echo "Could not write plan.json; see stderr.log." > "$JOB/result.md"
@@ -309,6 +321,7 @@ ro_cleanup() {   # ro, git repo: remove the throwaway worktree (no --force)
 }
 
 cd "$WORKDIR" || { echo "delegate: cannot enter $WORKDIR" >> "$JOB/stderr.log"; ro_cleanup; write_meta 1; exit 1; }
+[ -z "$MODEL" ] || FLAGS+=(--model "$MODEL")
 # Strip the parent session's identity: CLAUDECODE, every CLAUDE_CODE_* and every ANTHROPIC_* var
 # (API key, auth token, base URL, models, custom headers, ...).
 UNSET=(-u CLAUDECODE)
