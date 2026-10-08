@@ -1,6 +1,6 @@
 ---
 name: cmp-gates
-description: Use to run the finish gates of this Compose Multiplatform project — before saying a change is done, after a screen or module is in place, or before a commit — in a separate subagent that returns a short pass/fail report instead of the Gradle log, fixing only mechanical failures that have a written recipe.
+description: Use to run the finish gates of this Compose Multiplatform project — before saying a change is done, after a screen or module is in place, or before a commit — in a separate subagent that returns a short pass/fail report instead of the Gradle log, fixing only mechanical failures that have a written recipe. Runs in a subagent that does not see this conversation: pass what it needs as the argument.
 context: fork
 background: false
 model: sonnet
@@ -15,7 +15,11 @@ tool output. You did not see its conversation: everything you need is in the pro
 
 ## 1. Input
 
-- `$ARGUMENTS` names the gates to run (`android`, `ios`, `detekt`, `tests`); empty means all.
+Caller's request: "$ARGUMENTS"
+
+- The request above says which gates to run, in any wording: a name (`android`, `ios`,
+  `detekt`, `tests`), a sentence ("only the Android gate") or a gate's command. Run exactly
+  those, nothing else, and leave the others out of the report. `""` means all gates.
 - The gate commands are in `CLAUDE.md` under *Definition of done*, in order. Run only the gates
   listed there: a project without detekt has no detekt gate, and that is not a failure.
 - Read before running: `../cmp-verify/SKILL.md` sections 1 and 3 (how to read the output; the
@@ -24,9 +28,13 @@ tool output. You did not see its conversation: everything you need is in the pro
 
 ## 2. Run
 
+- With an argument, run only the requested gates, even when the list in `CLAUDE.md` or
+  `cmp-verify` says to run every gate in order: those rules are for a run without an argument.
+  `tests` alone means only the test command, not the Android and iOS gates before it.
 - Each gate as written, as its own command, in the foreground, with a long Bash timeout (up to
   ten minutes). `./gradlew build` is never used.
-- Stop at the first red gate and go to section 3; continue with the next gate once it is green.
+- Stop at the first red gate and go to section 3; continue with the next requested gate once it
+  is green.
 
 ## 3. Red gate: fix only what has a recipe
 

@@ -1,6 +1,6 @@
 ---
 name: cmp-detekt
-description: Use when the detekt gate is red, or before finishing a change in a project that has detekt — running ./gradlew detekt from the template's convention plugin with the owner's detekt/detekt.yml, auto-correcting formatting first, then fixing the remaining findings at their cause, without suppressions, baselines or config changes.
+description: Use when the detekt gate is red, or before finishing a change in a project that has detekt — running ./gradlew detekt from the template's convention plugin with the owner's detekt/detekt.yml, auto-correcting formatting first, then fixing the remaining findings at their cause, without suppressions, baselines or config changes. Runs in a subagent that does not see this conversation: pass what it needs as the argument.
 context: fork
 background: false
 model: sonnet
@@ -12,9 +12,11 @@ model: sonnet
 
 You run in your own subagent and did not see the caller's conversation.
 
-- Input: `$ARGUMENTS` — which modules, or empty for all. Read `CLAUDE.md` and the files involved
-  yourself; for any Kotlin you write, follow `../cmp-code-rules/SKILL.md` (path relative to this
-  skill's folder).
+Caller's request: "$ARGUMENTS"
+
+- The request names the modules to check. `""` means all modules.
+- Read `CLAUDE.md` and the files involved yourself; for any Kotlin you write, follow
+  `../cmp-code-rules/SKILL.md` (path relative to this skill's folder).
 - Application code that is not a mechanical detekt fix (formatting, an import, a constant, a
   visibility modifier) is not yours to change: a finding that needs a function split, a rename
   across files or a behaviour change is reported, not fixed.

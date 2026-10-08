@@ -1,6 +1,6 @@
 ---
 name: cmp-maestro
-description: Use when writing or repairing a Maestro flow for this app — the .maestro/walkthrough.yaml that Compass records the demo video from, a regression flow, or a flow that fails on selectors or timing — and when adding testTags so elements can be found by id. Also for an exploratory on-device check of a screen in an interactive session.
+description: Use when writing or repairing a Maestro flow for this app — the .maestro/walkthrough.yaml that Compass records the demo video from, a regression flow, or a flow that fails on selectors or timing — and when adding testTags so elements can be found by id. Also for an exploratory on-device check of a screen in an interactive session. Runs in a subagent that does not see this conversation: pass what it needs as the argument.
 context: fork
 background: false
 model: sonnet
@@ -13,9 +13,12 @@ argument-hint: "<flow (walkthrough or a regression flow) and the screens it cove
 
 You run in your own subagent and did not see the caller's conversation.
 
-- Input: `$ARGUMENTS` — the flow and the screens it covers. Read `CLAUDE.md` and the files involved
-  yourself; for any Kotlin you write, follow `../cmp-code-rules/SKILL.md` (path relative to this
-  skill's folder).
+Caller's request: "$ARGUMENTS"
+
+- The request names the flow and the screens it covers. `""` means the walkthrough,
+  `.maestro/walkthrough.yaml`.
+- Read `CLAUDE.md` and the files involved yourself; for any Kotlin you write, follow
+  `../cmp-code-rules/SKILL.md` (path relative to this skill's folder).
 - Application code that is not a `testTag`, a `<Name>TestTags` object or `testTagsAsResourceId`
   is not yours to change.
 - Your final message is the report, nothing else: files changed (one line each), the gate you ran
